@@ -1,0 +1,23 @@
+apiVersion: v1
+entries:
+  graphprotocol-node:
+  - apiVersion: v2
+    appVersion: v0.24.1
+    created: "2022-08-14T21:38:35.906007767Z"
+    description: A Helm chart for Graph Protocol Nodes
+    digest: 7a41bc535d2f27862e788d782811eca62d8feb037504cb73e132a985731536e3
+    home: https://thegraph.com/
+    keywords:
+    - graphprotocol
+    - ethereum
+    maintainers:
+    - email: dm3ch@dm3ch.net
+      name: dm3ch (original author)
+    name: graphprotocol-node
+    sources:
+    - https://github.com/graphprotocol/graph-node
+    type: application
+    urls:
+    - https://github.com/MakerOps/helm-charts/releases/download/graphprotocol-node-0.1.1/graphprotocol-node-0.1.1.tgz
+    version: 0.1.1
+generated: "2022-08-14T21:38:35.906045368Z"
