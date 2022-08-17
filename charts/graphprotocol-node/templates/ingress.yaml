@@ -58,7 +58,7 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
+    {{- range .Values.ingressRpc.hosts }}
     - host: {{ . | quote }}
       http:
         paths:
