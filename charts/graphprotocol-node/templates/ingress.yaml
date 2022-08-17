@@ -47,9 +47,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.ingress.tls }}
+  {{- if .Values.ingressRpc.tls }}
   tls:
-    {{- range .Values.ingress.tls }}
+    {{- range .Values.ingressRpc.tls }}
     - hosts:
         {{- range .hosts }}
         - {{ . | quote }}
