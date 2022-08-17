@@ -235,6 +235,29 @@
       }
     }
   },
+  "ingressRpc": {
+    "type": "object",
+    "required": [
+      "enabled",
+      "annotations",
+      "hosts",
+      "tls"
+    ],
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "annotations": {
+        "type": "object"
+      },
+      "hosts": {
+        "type": "array"
+      },
+      "tls": {
+        "type": "array"
+      }
+    }
+  },
   "ingressWebsocket": {
     "type": "object",
     "required": [
