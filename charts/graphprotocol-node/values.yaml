@@ -109,6 +109,18 @@ ingressRpc:
   #    hosts:
   #      - chart-example.local
 
+ingressIndex:
+  enabled: false
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    # - host: chart-example.local
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
 ingressWebsocket:
   enabled: false
   annotations: {}
