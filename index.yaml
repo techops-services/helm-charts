@@ -172,4 +172,15 @@ entries:
     urls:
     - https://github.com/MakerOps/helm-charts/releases/download/graphprotocol-node-0.1.1/graphprotocol-node-0.1.1.tgz
     version: 0.1.1
-generated: "2022-08-18T05:27:54.338443938Z"
+  polymesh:
+  - apiVersion: v2
+    appVersion: 4.1.1
+    created: "2022-08-23T05:35:45.902313431Z"
+    description: A Helm chart for running Polymesh on Kubernetes
+    digest: 1bc4c670656f49f18fffd85571b2ea8aef4f56b929531d0f548102530ef75046
+    name: polymesh
+    type: application
+    urls:
+    - https://github.com/MakerOps/helm-charts/releases/download/polymesh-1.0.0/polymesh-1.0.0.tgz
+    version: 1.0.0
+generated: "2022-08-23T05:35:45.902440734Z"
