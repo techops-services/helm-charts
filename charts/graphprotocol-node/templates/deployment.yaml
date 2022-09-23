@@ -56,6 +56,8 @@ spec:
               value: {{ .Values.blockIngestorNodeId | quote }}
             - name: EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE
               value: synced
+            - name: GRAPH_LOG
+              value: {{ .Values.logLevel | quote }}
             {{- else -}}
             - name: node_id
               valueFrom:

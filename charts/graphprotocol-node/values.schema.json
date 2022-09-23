@@ -20,7 +20,8 @@
     "role",
     "monitoring",
     "ingress",
-    "ingressWebsocket"
+    "ingressWebsocket",
+    "logLevel"
   ],
   "properties": {
     "image": {
@@ -62,6 +63,9 @@
     },
     "securityContext": {
       "type": "object"
+    },
+    "logLevel": {
+      "type": "string"
     },
     "service": {
       "type": "object",
