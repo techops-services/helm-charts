@@ -20,7 +20,8 @@
     "role",
     "monitoring",
     "ingress",
-    "ingressWebsocket"
+    "ingressWebsocket",
+    "logLevel"
   ],
   "properties": {
     "image": {
@@ -62,6 +63,9 @@
     },
     "securityContext": {
       "type": "object"
+    },
+    "logLevel": {
+      "type": "string"
     },
     "service": {
       "type": "object",
@@ -213,6 +217,52 @@
     }
   },
   "ingress": {
+    "type": "object",
+    "required": [
+      "enabled",
+      "annotations",
+      "hosts",
+      "tls"
+    ],
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "annotations": {
+        "type": "object"
+      },
+      "hosts": {
+        "type": "array"
+      },
+      "tls": {
+        "type": "array"
+      }
+    }
+  },
+  "ingressRpc": {
+    "type": "object",
+    "required": [
+      "enabled",
+      "annotations",
+      "hosts",
+      "tls"
+    ],
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "annotations": {
+        "type": "object"
+      },
+      "hosts": {
+        "type": "array"
+      },
+      "tls": {
+        "type": "array"
+      }
+    }
+  },
+  "ingressIndex": {
     "type": "object",
     "required": [
       "enabled",

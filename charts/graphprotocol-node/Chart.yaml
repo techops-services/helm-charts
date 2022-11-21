@@ -2,7 +2,7 @@ apiVersion: v2
 name: graphprotocol-node
 description: A Helm chart for Graph Protocol Nodes
 type: application
-version: 0.1.0
+version: 0.1.11
 keywords:
   - graphprotocol
   - ethereum
@@ -12,4 +12,4 @@ sources:
 maintainers:
   - email: dm3ch@dm3ch.net
     name: dm3ch (original author)
-appVersion: v0.24.1
+appVersion: v0.27.0
