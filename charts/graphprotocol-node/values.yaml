@@ -84,6 +84,7 @@ role: "query-node"
 
 monitoring:
   enabled: false
+  labels: "prometheus"
 
 ingress:
   enabled: false
