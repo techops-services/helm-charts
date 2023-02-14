@@ -4,7 +4,7 @@ kind: ServiceMonitor
 metadata:
   name: {{ include "graphprotocol-node.fullname" . }}
   labels:
-    {{- include "graphprotocol-node.labels" . | nindent 4 }}
+    {{- include "graphprotocol-node.serviceMonitorLabels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:

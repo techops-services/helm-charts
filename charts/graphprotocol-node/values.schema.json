@@ -208,11 +208,16 @@
     "monitoring": {
       "type": "object",
       "required": [
-        "enabled"
+        "enabled",
+        "labels"
       ],
       "enabled": {
         "type": "boolean",
         "description": "enabled ServiceMonitor object creation"
+      },
+      "labels": {
+        "type": "string",
+        "description": "specify the service.monitor label value."
       }
     }
   },

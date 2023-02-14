@@ -50,3 +50,16 @@ Selector labels
 app.kubernetes.io/name: {{ include "graphprotocol-node.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+ServiceMonitor labels
+*/}}
+{{- define "graphprotocol-node.serviceMonitorLabels" -}}
+service.monitor: {{ .Values.monitoring.labels }}
+helm.sh/chart: {{ include "graphprotocol-node.chart" . }}
+{{ include "graphprotocol-node.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
