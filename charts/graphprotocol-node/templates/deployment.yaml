@@ -49,10 +49,7 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command:
-                - /bin/sh
-                - -c
-                - sleep 60
+                command: ["/bin/sh", "-c", "sleep 60"]
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             {{ if eq .Values.role "index-node" }}
