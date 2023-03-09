@@ -46,6 +46,13 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - sleep 60
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             {{ if eq .Values.role "index-node" }}
