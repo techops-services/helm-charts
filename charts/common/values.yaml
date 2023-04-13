@@ -14,7 +14,7 @@ service:
     issuerName: ""
 
 image:
-  repository: us-central1-docker.pkg.dev/gcp-project-name/artifact-name/container-name
+  repository: organization/name
   pullPolicy: IfNotPresent
   tag: "latest"
 
@@ -27,7 +27,7 @@ serviceAccount:
   create: true
   # Annotations to add to the service account
   annotations:
-    iam.gke.io/gcp-service-account: sa-name@gcp-project-name.iam.gserviceaccount.com
+    eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
 
 podAnnotations: {}
 
