@@ -22,14 +22,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-livenessProbe:
-  tcpSocket:
-    # path: /
-    port: http
-readinessProbe:
-  tcpSocket:
-    # path: /
-    port: http
+livenessProbe: {}
+readinessProbe: {}
 
 serviceAccount:
   # Specifies whether a service account should be created
