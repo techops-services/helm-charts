@@ -4,19 +4,19 @@
 
 replicaCount: 1
 
-service: {}
-#  name: ""
-#  port: 80
-#  type: ClusterIP
-#  containerPort: 5000
-#  tls:
-#    enabled: false
-#    issuerName: ""
+service:
+  name: ""
+  port: 80
+  type: ClusterIP
+  containerPort: 5000
+  tls:
+    enabled: false
+    issuerName: ""
 
-image: {}
-#  repository: organization/name
-#  pullPolicy: IfNotPresent
-#  tag: "latest"
+image:
+  repository: organization/name
+  pullPolicy: IfNotPresent
+  tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -31,12 +31,12 @@ readinessProbe:
     # path: /
     port: http
 
-serviceAccount: {}
-#  # Specifies whether a service account should be created
-#  create: false
-#  # Annotations to add to the service account
-#  annotations:
-#    eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
 
 podAnnotations: {}
 
