@@ -88,6 +88,8 @@ spec:
                   name: {{ include "graphprotocol-node.fullname" . }}
                   key: pgPass
                 {{- end }}
+            - name: GRAPH_GRAPHQL_MAX_FIRST
+              value: "{{ .Values.graph_graphql_max_first | default "1000" }}"
           ports:
             - name: metrics
               containerPort: 8040
