@@ -21,7 +21,8 @@
     "monitoring",
     "ingress",
     "ingressWebsocket",
-    "logLevel"
+    "logLevel",
+    "env"
   ],
   "properties": {
     "image": {
@@ -241,6 +242,24 @@
       },
       "tls": {
         "type": "array"
+      }
+    },
+     "env": {
+      "description": "Environment variables to add to the containers",
+      "type": "object",
+      "required": [
+        "GRAPH_GRAPHQL_MAX_FIRST",
+        "ethereum"
+      ],
+      "properties": {
+        "GRAPH_GRAPHQL_MAX_FIRST": {
+          "type": "string",
+          "description": "GRAPH_GRAPHQL_MAX_FIRST"
+        },
+        "ethereum": {
+          "type": "string",
+          "description": "Ethereum variable"
+        }
       }
     }
   },
