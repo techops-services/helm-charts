@@ -81,6 +81,25 @@ entries:
   graphprotocol-node:
   - apiVersion: v2
     appVersion: v0.27.0
+    created: "2023-05-19T01:43:59.15140938Z"
+    description: A Helm chart for Graph Protocol Nodes
+    digest: 8daa6c95e15bbd00dbaeee6b130699221d19b98cd351d46c895de5d95b524bbb
+    home: https://thegraph.com/
+    keywords:
+    - graphprotocol
+    - ethereum
+    maintainers:
+    - email: dm3ch@dm3ch.net
+      name: dm3ch (original author)
+    name: graphprotocol-node
+    sources:
+    - https://github.com/graphprotocol/graph-node
+    type: application
+    urls:
+    - https://github.com/MakerOps/helm-charts/releases/download/graphprotocol-node-0.1.14/graphprotocol-node-0.1.14.tgz
+    version: 0.1.14
+  - apiVersion: v2
+    appVersion: v0.27.0
     created: "2023-03-09T01:04:59.310598812Z"
     description: A Helm chart for Graph Protocol Nodes
     digest: 3396ac18eb728fbe5e1bc0ba2645b271b707c1d1a9eca6bf8cb9a5e1cd2e5f98
@@ -337,4 +356,4 @@ entries:
     urls:
     - https://github.com/MakerOps/helm-charts/releases/download/polymesh-1.0.0/polymesh-1.0.0.tgz
     version: 1.0.0
-generated: "2023-05-02T15:55:32.25346349Z"
+generated: "2023-05-19T01:43:59.15150888Z"
