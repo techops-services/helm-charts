@@ -89,7 +89,7 @@ spec:
                   key: pgPass
                 {{- end }}
             - name: GRAPH_GRAPHQL_MAX_FIRST
-              value: "{{ .Values.GRAPH_GRAPHQL_MAX_FIRST | default "1000" }}"
+              value: "{{ .Values.env.GRAPH_GRAPHQL_MAX_FIRST | default "1000" }}"
           ports:
             - name: metrics
               containerPort: 8040
