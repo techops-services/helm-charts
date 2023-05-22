@@ -88,8 +88,10 @@ spec:
                   name: {{ include "graphprotocol-node.fullname" . }}
                   key: pgPass
                 {{- end }}
-            - name: GRAPH_GRAPHQL_MAX_FIRST
-              value: "{{ .Values.env.GRAPH_GRAPHQL_MAX_FIRST | quote }}"
+              {{- range $key, $value := .Values.env }}
+              - name: {{ $key }}
+                value: {{ quote $value }}
+              {{- end }}
           ports:
             - name: metrics
               containerPort: 8040
