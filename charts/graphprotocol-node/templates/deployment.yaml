@@ -62,9 +62,7 @@ spec:
               value: {{ .Values.logLevel | quote }}
             {{- else -}}
             - name: node_id
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
+              value: "query_node"
             {{- end }}
             - name: node_role
               value: {{ .Values.role | quote }}
