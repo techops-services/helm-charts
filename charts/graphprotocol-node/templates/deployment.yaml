@@ -88,6 +88,10 @@ spec:
                   name: {{ include "graphprotocol-node.fullname" . }}
                   key: pgPass
                 {{- end }}
+            - name: GRAPH_GRAPHQL_MAX_FIRST
+              value: "{{ .Values.env.GRAPH_GRAPHQL_MAX_FIRST | default "1000" }}"
+            - name: ethereum
+              value: "{{ .Values.env.ethereum | default "" }}"
           ports:
             - name: metrics
               containerPort: 8040
