@@ -62,7 +62,9 @@ spec:
               value: {{ .Values.logLevel | quote }}
             {{- else -}}
             - name: node_id
-              value: "query_node"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             {{- end }}
             - name: node_role
               value: {{ .Values.role | quote }}
@@ -84,10 +86,10 @@ spec:
                   name: {{ include "graphprotocol-node.fullname" . }}
                   key: pgPass
                 {{- end }}
-              {{- range $key, $value := .Values.env }}
-              - name: {{ $key }}
-                value: {{ quote $value }}
-              {{- end }}
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ quote $value }}
+            {{- end }}
           ports:
             - name: metrics
               containerPort: 8040
