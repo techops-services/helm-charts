@@ -60,7 +60,7 @@ spec:
               value: {{ .Values.blockIngestorNodeId | quote }}
             - name: GRAPH_LOG
               value: {{ .Values.logLevel | quote }}
-            {{- else }}
+            {{- else -}}
             - name: node_id
               valueFrom:
                 fieldRef:
