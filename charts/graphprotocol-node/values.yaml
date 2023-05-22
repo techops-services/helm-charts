@@ -140,4 +140,4 @@ logLevel: error
 # Environment variables to be passed to the containers
 env:
   GRAPH_GRAPHQL_MAX_FIRST: 1000
-  EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE: "instant"
+  EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE: instant
