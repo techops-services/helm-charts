@@ -58,11 +58,9 @@ spec:
               value: {{ .Values.blockIngestorNodeId | quote }}
             - name: node_id
               value: {{ .Values.blockIngestorNodeId | quote }}
-            - name: EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE
-              value: {{ .Values.env.EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE | quote }}
             - name: GRAPH_LOG
               value: {{ .Values.logLevel | quote }}
-            {{- else -}}
+            {{- else }}
             - name: node_id
               valueFrom:
                 fieldRef:
