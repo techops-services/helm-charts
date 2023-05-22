@@ -59,7 +59,7 @@ spec:
             - name: node_id
               value: {{ .Values.blockIngestorNodeId | quote }}
             - name: EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE
-              value: synced
+              value: {{ .Values.env.EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE | quote }}
             - name: GRAPH_LOG
               value: {{ .Values.logLevel | quote }}
             {{- else -}}
@@ -89,9 +89,7 @@ spec:
                   key: pgPass
                 {{- end }}
             - name: GRAPH_GRAPHQL_MAX_FIRST
-              value: "{{ .Values.env.GRAPH_GRAPHQL_MAX_FIRST | default "1000" }}"
-            - name: ethereum
-              value: "{{ .Values.env.ethereum | default "" }}"
+              value: "{{ .Values.env.GRAPH_GRAPHQL_MAX_FIRST | quote }}"
           ports:
             - name: metrics
               containerPort: 8040
