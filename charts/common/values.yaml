@@ -19,7 +19,7 @@ deployment:
 
 cronjob:
   enabled: false
-  jobs: {}
+  jobs: []
 #    - name: hello-world
 #      securityContext:
 #        runAsUser: 1000
@@ -89,6 +89,8 @@ readinessProbe: {}
 serviceAccount:
   # Specifies whether a service account should be created
   create: false
+  # The name of the service account to use.
+  name: ""
   # Annotations to add to the service account
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
@@ -152,7 +154,7 @@ affinity: {}
 externalSecrets: {}
 #  clusterSecretStoreName: ""
 
-env: []
+env:
 # env:
 #   DB_NAME:
 #     type: kv

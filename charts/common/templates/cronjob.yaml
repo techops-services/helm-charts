@@ -1,11 +1,10 @@
+{{- $fullName := include "common.fullname" . -}}
 {{- range $job := .Values.cronjob.jobs }}
 ---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: "{{ include "common.fullname" . }}-{{ $job.name }}"
-  labels:
-    {{- include "common.labels" . | nindent 4 }}
+  name: "{{ $fullName }}-{{ $job.name }}"
 spec:
   concurrencyPolicy: {{ $job.concurrencyPolicy }}
   failedJobsHistoryLimit: {{ $job.failedJobsHistoryLimit }}
@@ -14,7 +13,7 @@ spec:
       template:
         metadata:
           labels:
-            app: {{ include "common.fullname" $ }}
+            app: {{ $fullName }}
             cron: {{ $job.name }}
         spec:
         {{- if hasKey $job "serviceAccount" }}
