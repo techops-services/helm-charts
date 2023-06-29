@@ -6,11 +6,11 @@ kind: CronJob
 metadata:
   name: "{{ $fullName }}-{{ $job.name }}"
 spec:
-  backoffLimit: {{ $job.backoffLimit | default "6" }}
   concurrencyPolicy: {{ $job.concurrencyPolicy }}
   failedJobsHistoryLimit: {{ $job.failedJobsHistoryLimit }}
   jobTemplate:
     spec:
+      backoffLimit: {{ $job.backoffLimit | default "6" }}
       template:
         metadata:
           labels:
