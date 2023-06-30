@@ -58,6 +58,7 @@ cronjob:
 #      successfulJobsHistoryLimit: 3
 #      concurrencyPolicy: Forbid
 #      restartPolicy: Never
+#      backoffLimit: 2
 #      nodeSelector:
 #        type: infra
 #      tolerations:
