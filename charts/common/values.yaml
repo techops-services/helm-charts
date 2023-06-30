@@ -82,7 +82,7 @@ image:
 command: []
 # - /bin/sh
 args: []
-# -  -c
+# - -c
 # - echo Hello, World!
 
 imagePullSecrets: []
