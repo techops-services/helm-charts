@@ -82,8 +82,8 @@ image:
 command: []
 # - /bin/sh
 args: []
-# -c
-# echo Hello, World!
+# -  -c
+# - echo Hello, World!
 
 imagePullSecrets: []
 nameOverride: ""
