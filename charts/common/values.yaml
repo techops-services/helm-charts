@@ -80,6 +80,12 @@ image:
   pullPolicy: IfNotPresent
   tag: "latest"
 
+command: []
+# - /bin/sh
+args: []
+# - -c
+# - echo Hello, World!
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
