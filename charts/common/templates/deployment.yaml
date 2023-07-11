@@ -6,6 +6,9 @@ metadata:
   name: {{ include "common.fullname" . }}
   labels:
     {{- include "common.labels" . | nindent 4 }}
+    {{- with .Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -13,6 +16,9 @@ spec:
   selector:
     matchLabels:
       {{- include "common.selectorLabels" . | nindent 6 }}
+      {{- with .Values.selectorLabels }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -21,6 +27,9 @@ spec:
       {{- end }}
       labels:
         {{- include "common.selectorLabels" . | nindent 8 }}
+        {{- with .Values.selectorLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -50,6 +59,13 @@ spec:
             - name: http
               containerPort: {{ .Values.service.containerPort }}
               protocol: TCP
+          {{- else if .Values.deployment.ports }} # If ports are defined for the deployment, use all of them
+          ports:
+            {{- range .Values.deployment.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort }}
+              protocol: {{ .protocol }}
+            {{- end }}
           {{- end }}
           env:
             {{- range $k, $v := .Values.env }}

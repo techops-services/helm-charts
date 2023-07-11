@@ -48,7 +48,7 @@ Selector labels
 {{- define "common.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "common.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/serviceName: {{  include "common.fullname" .}}
+app.kubernetes.io/serviceName: {{ include "common.fullname" .}}
 {{- end }}
 
 {{/*
@@ -57,7 +57,3 @@ Create the name of the service account to use
 {{- define "common.serviceAccountName" -}}
 {{- default "default" .Values.service.name }}
 {{- end }}
-
-
-
-    
