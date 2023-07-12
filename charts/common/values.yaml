@@ -7,9 +7,9 @@ replicaCount: 1
 service:
   enabled: true
   name: ""
-  port: 80
+#  port: 80
   type: ClusterIP
-  containerPort: 5000
+#  containerPort: 5000
   tls:
     enabled: false
     issuerName: ""
