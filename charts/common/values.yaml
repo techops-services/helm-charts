@@ -5,14 +5,14 @@
 replicaCount: 1
 
 service:
-  enabled: true
-  name: ""
-  port: 80
-  type: ClusterIP
-  containerPort: 5000
-  tls:
-    enabled: false
-    issuerName: ""
+#  enabled: true
+#  name: ""
+#  port: 80
+#  type: ClusterIP
+#  containerPort: 5000
+#  tls:
+#    enabled: false
+#    issuerName: ""
 
 deployment:
   enabled: true
@@ -100,7 +100,7 @@ serviceAccount:
   name: ""
   # Annotations to add to the service account
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
+#    eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
 
 podAnnotations: {}
 
