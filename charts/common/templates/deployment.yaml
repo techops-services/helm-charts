@@ -40,11 +40,26 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.deployment.volumes }}
+      volumes:
+        {{- range $volume := .Values.deployment.volumes }}
+        - name: {{ $fullName }}-{{ $volume.name }}-volume
+          persistentVolumeClaim:
+            claimName: {{ $fullName }}-{{ $volume.name }}-pvc
+        {{- end }}
+      {{- end }}
       containers:
         - name:  {{ include "common.fullname" . }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- if .Values.deployment.volumes }}
+          volumeMounts:
+            {{- range $volume := .Values.deployment.volumes }}
+            - name: {{ $fullName }}-{{ $volume.name }}-volume
+              mountPath: {{ $volume.mountPath }}
+            {{- end }}
+          {{- end }}
           {{- if .Values.command }}
           command:
             {{ toYaml .Values.command | nindent 12 }}

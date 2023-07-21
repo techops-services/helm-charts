@@ -16,6 +16,52 @@ service:
 
 deployment:
   enabled: true
+  volumes: []
+#    - name: data
+#      mountPath: /data
+#      provisioner: ebs.csi.aws.com
+#      annotations:
+#        storageclass.kubernetes.io/some-annotation: "some-value"
+#      bindingMode: WaitForFirstConsumer
+#      accessModes:
+#        - ReadWriteOnce
+#      parameters:
+#         type: gp3
+#      resources:
+#        requests:
+#          storage: 4Gi
+#
+#    - name: config
+#      mountPath: /config
+#      provisioner: ebs.csi.aws.com
+#      annotations:
+#        storageclass.kubernetes.io/some-annotation: "some-value"
+#      bindingMode: WaitForFirstConsumer
+#      accessModes:
+#        - ReadWriteOnce
+#      parameters:
+#         type: gp3
+#      resources:
+#        requests:
+#          storage: 4Gi
+#
+#    - name: shared
+#      mountPath: /shared
+#      provisioner: efs.csi.aws.com
+#      annotations:
+#        storageclass.kubernetes.io/some-annotation: "some-value"
+#      accessModes:
+#        - ReadWriteMany
+#      parameters:
+#        provisioningMode: efs-ap
+#        fileSystemId: fs-12345678
+#        directoryPerms: "700"
+#        gidRangeStart: "1000" # optional
+#        gidRangeEnd: "2000" # optional
+#        basePath: "/dynamic_provisioning" # optional
+#      resources:
+#        requests:
+#          storage: 4Gi
 
 cronjob:
   enabled: false
