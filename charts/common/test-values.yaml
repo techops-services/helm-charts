@@ -1,0 +1,204 @@
+# Default values for Helm Chart testing.
+
+replicaCount: 1
+
+service:
+  enabled: true
+  name: "test"
+  port: 80
+  type: ClusterIP
+  containerPort: 5000
+  tls:
+    enabled: false
+    issuerName: "test"
+
+deployment:
+  enabled: true
+  volumes:
+    - name: data
+      mountPath: /data
+      provisioner: ebs.csi.aws.com
+      annotations:
+        storageclass.kubernetes.io/some-annotation: "some-value"
+      bindingMode: WaitForFirstConsumer
+      accessModes:
+        - ReadWriteOnce
+      parameters:
+        type: gp3
+      resources:
+        requests:
+          storage: 4Gi
+
+    - name: config
+      mountPath: /config
+      provisioner: ebs.csi.aws.com
+      annotations:
+        storageclass.kubernetes.io/some-annotation: "some-value"
+      bindingMode: WaitForFirstConsumer
+      accessModes:
+        - ReadWriteOnce
+      parameters:
+        type: gp3
+
+    - name: shared
+      mountPath: /shared
+      provisioner: efs.csi.aws.com
+      annotations:
+        storageclass.kubernetes.io/some-annotation: "some-value"
+      parameters:
+        provisioningMode: efs-ap
+        fileSystemId: fs-92107410
+        directoryPerms: "700"
+        gidRangeStart: "1000" # optional
+        gidRangeEnd: "2000" # optional
+        basePath: "/dynamic_provisioning" # optional
+
+cronjob:
+  enabled: false
+  jobs:
+    - name: hello-world
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 2000
+      image:
+        repository: busybox
+        tag: latest
+        imagePullPolicy: Always
+      # optional env vars
+      env:
+        - name: ECHO_VAR
+          value: "busybox"
+      envFrom:
+        - secretRef:
+            name: secret_data
+        - configMapRef:
+            name: config_data
+      schedule: "* * * * *"
+      command: ["/bin/sh"]
+      args:
+        - "-c"
+        - "echo $(date) - hello from $ECHO_VAR"
+        - "echo $(date) - loaded secret $secret_data"
+        - "echo $(date) - loaded config $config_data"
+      serviceAccount:
+        name: "busybox-serviceaccount"
+      resources:
+        limits:
+          cpu: 50m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 256Mi
+      failedJobsHistoryLimit: 1
+      successfulJobsHistoryLimit: 3
+      concurrencyPolicy: Forbid
+      restartPolicy: Never
+      backoffLimit: 2
+      nodeSelector:
+        type: infra
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/e2e-az-name
+                    operator: In
+                    values:
+                      - e2e-az1
+                      - e2e-az2
+
+image:
+  repository: organization/name
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+command:
+  - /bin/sh
+args:
+  - -c
+  - echo Hello, World!
+
+imagePullSecrets: []
+nameOverride: "test"
+fullnameOverride: "test"
+
+livenessProbe: {}
+readinessProbe: {}
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # The name of the service account to use.
+  name: ""
+  # Annotations to add to the service account
+  annotations:
+#    eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
+
+podAnnotations: {}
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+securityContext:
+  {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+ingress:
+  enabled: true
+  className: ""
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  host: example.com
+
+  tls:
+    - secretName: chart-example-tls
+      hosts:
+        - chart-example.local
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+externalSecrets:
+  clusterSecretStoreName: "test"
+
+env:
+  DB_NAME:
+    type: kv
+    value: example-db
+  DB_USER_NAME:
+    type: kv
+    value: example
+  DB_USER_PASSWORD:
+    type: parameterStore
+    name: example-db
+    parameter_name: DB_PASSWORD

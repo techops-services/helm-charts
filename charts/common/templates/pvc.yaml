@@ -1,0 +1,24 @@
+{{- if .Values.deployment.volumes }}
+{{- $fullName := include "common.fullname" . -}}
+{{- range $volume := .Values.deployment.volumes }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullName }}-{{ $volume.name }}-pvc
+  {{- with .annotations }}
+  annotations:
+  {{ toYaml . | indent 4 }}
+  {{- end }}
+spec:
+  {{- with .accessModes }}
+  accessModes:
+  {{ toYaml . | indent 4 }}
+  {{- end }}
+  storageClassName: {{ $fullName }}-{{ $volume.name }}-sc
+  {{- if .resources }}
+  resources:
+    {{- toYaml .resources | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

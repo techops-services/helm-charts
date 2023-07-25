@@ -1,0 +1,22 @@
+{{- if .Values.deployment.volumes }}
+{{- $fullName := include "common.fullname" . -}}
+{{- range $volume := .Values.deployment.volumes }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ $fullName }}-{{ $volume.name }}-sc
+  {{- with .annotations }}
+  annotations:
+  {{ toYaml . | indent 4 }}
+  {{- end }}
+provisioner: {{ $volume.provisioner }}
+{{- if $volume.bindingMode }}
+volumeBindingMode: {{ $volume.bindingMode }}
+{{- end }}
+{{- with $volume.parameters }}
+parameters:
+{{ toYaml . | indent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}
