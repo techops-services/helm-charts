@@ -1,3 +1,3 @@
 # helm-charts
 
-Repository to use: "https://makerops.github.io/helm-charts"
+Repository to use: "https://techops-services.github.io/helm-charts"
