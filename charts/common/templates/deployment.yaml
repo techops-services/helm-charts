@@ -23,7 +23,7 @@ spec:
     metadata:
       {{- with .Values.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 10 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "common.selectorLabels" . | nindent 8 }}
