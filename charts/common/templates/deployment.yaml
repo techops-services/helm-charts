@@ -35,7 +35,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.serviceAccount.create -}}
+      {{- if .Values.serviceAccount.create }}
       serviceAccountName: {{ include "common.serviceAccountName" . }}
       {{- end }}
       securityContext:
