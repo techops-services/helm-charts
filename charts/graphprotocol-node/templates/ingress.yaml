@@ -42,7 +42,7 @@ metadata:
   name: {{ include "graphprotocol-node.fullname" . }}-rpc
   labels:
     {{- include "graphprotocol-node.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  {{- with .Values.ingressRpc.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
