@@ -18,5 +18,6 @@ volumeBindingMode: {{ $volume.bindingMode }}
 parameters:
 {{ toYaml . | indent 2 }}
 {{- end }}
+reclaimPolicy: {{ default "Delete" $volume.reclaimPolicy }}
 {{- end }}
 {{- end }}
