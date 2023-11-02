@@ -202,3 +202,7 @@ env:
     type: parameterStore
     name: example-db
     parameter_name: DB_PASSWORD
+
+httpBasicAuth:
+  enabled: true
+  usersList: user1:pasword1,user2:password2

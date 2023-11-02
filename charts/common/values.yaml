@@ -223,3 +223,6 @@ env:
 #     name: example-db
 #     parameter_name: DB_PASSWORD
 
+httpBasicAuth:
+  enabled: false
+#  usersList: user1:pasword1,user2:password2
