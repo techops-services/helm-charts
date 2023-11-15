@@ -9,7 +9,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- if .Values.httpBasicAuth.enabled }}
-    traefik.ingress.kubernetes.io/router.middlewares: {{ $fullName }}-http-basic-auth-{{ .Release.Namespace }}@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ $fullName }}-http-basic-auth@kubernetescrd
   {{- end }}
 spec:
   ingressClassName: traefik

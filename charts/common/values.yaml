@@ -225,4 +225,4 @@ env:
 
 httpBasicAuth:
   enabled: false
-#  usersList: user1:pasword1,user2:password2
+#  usersList: user1:hashed_pasword1,user2:hashed_password2
