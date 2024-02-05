@@ -10,6 +10,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
     {{- range .Values.ingress.tls }}
@@ -30,7 +33,7 @@ spec:
             backend:
               service:
                 name: {{ include "graphprotocol-node.fullname" $ }}
-                port: 
+                port:
                   number: 8000
     {{- end }}
 {{- end }}
@@ -47,6 +50,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
+  {{- if .Values.ingressRpc.ingressClassName }}
+  ingressClassName: {{ .Values.ingressRpc.ingressClassName }}
+  {{- end }}
   {{- if .Values.ingressRpc.tls }}
   tls:
     {{- range .Values.ingressRpc.tls }}
@@ -67,7 +73,7 @@ spec:
             backend:
               service:
                 name: {{ include "graphprotocol-node.fullname" $ }}
-                port: 
+                port:
                   number: 8020
     {{- end }}
 {{- end }}
@@ -84,6 +90,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
+  {{- if .Values.ingressWebsocket.ingressClassName }}
+  ingressClassName: {{ .Values.ingressWebsocket.ingressClassName }}
+  {{- end }}
   {{- if .Values.ingressWebsocket.tls }}
   tls:
     {{- range .Values.ingressWebsocket.tls }}
@@ -104,11 +113,10 @@ spec:
             backend:
               service:
                 name: {{ include "graphprotocol-node.fullname" $ }}
-                port: 
+                port:
                   number: 8001
     {{- end }}
 {{- end }}
-
 ---
 {{- if .Values.ingressIndex.enabled -}}
 apiVersion: networking.k8s.io/v1
@@ -122,6 +130,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
+  {{- if .Values.ingressIndex.ingressClassName }}
+  ingressClassName: {{ .Values.ingressIndex.ingressClassName }}
+  {{- end }}
   {{- if .Values.ingressIndex.tls }}
   tls:
     {{- range .Values.ingressIndex.tls }}
@@ -142,7 +153,7 @@ spec:
             backend:
               service:
                 name: {{ include "graphprotocol-node.fullname" $ }}
-                port: 
+                port:
                   number: 8030
     {{- end }}
 {{- end }}
