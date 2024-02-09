@@ -1,0 +1,71 @@
+{{- if .Values.ingress.tls.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.ingress.host }}
+spec:
+  secretName: {{ .Values.ingress.host }}-tls
+  duration: 2160h
+  renewBefore: 2158h
+  issuerRef:
+    name: {{ .Values.ingress.tls.issuerName }}
+    kind: ClusterIssuer
+  dnsNames:
+  {{- range .Values.ingress.hosts }}
+    - {{ . | quote }}
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.ingressIndex.tls.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.ingressIndex.host }}
+spec:
+  secretName: {{ .Values.ingressIndex.host }}-tls
+  duration: 2160h
+  renewBefore: 2158h
+  issuerRef:
+    name: {{ .Values.ingressIndex.tls.issuerName }}
+    kind: ClusterIssuer
+  dnsNames:
+  {{- range .Values.ingressIndex.hosts }}
+    - {{ . | quote }}
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.ingressRpc.tls.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.ingressRpc.host }}
+spec:
+  secretName: {{ .Values.ingressRpc.host }}-tls
+  duration: 2160h
+  renewBefore: 2158h
+  issuerRef:
+    name: {{ .Values.ingressRpc.tls.issuerName }}
+    kind: ClusterIssuer
+  dnsNames:
+  {{- range .Values.ingressRpc.hosts }}
+    - {{ . | quote }}
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.ingressWebsocket.tls.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.ingressWebsocket.host }}
+spec:
+  secretName: {{ .Values.ingressWebsocket.host }}-tls
+  duration: 2160h
+  renewBefore: 2158h
+  issuerRef:
+    name: {{ .Values.ingressWebsocket.tls.issuerName }}
+    kind: ClusterIssuer
+  dnsNames:
+  {{- range .Values.ingressWebsocket.hosts }}
+    - {{ . | quote }}
+  {{- end }}
+{{- end }}

@@ -1,8 +1,9 @@
+{{- $fullName := include "graphprotocol-node.fullname" . -}}
 {{- if .Values.ingress.enabled -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "graphprotocol-node.fullname" . }}
+  name: {{ $fullName }}
   labels:
     {{- include "graphprotocol-node.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
@@ -13,15 +14,13 @@ spec:
   {{- if .Values.ingress.ingressClassName }}
   ingressClassName: {{ .Values.ingress.ingressClassName }}
   {{- end }}
-  {{- if .Values.ingress.tls }}
+  {{- if .Values.ingress.tls.enabled }}
   tls:
-    {{- range .Values.ingress.tls }}
     - hosts:
-        {{- range .hosts }}
+      {{- range .Values.ingress.hosts }}
         - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
+      {{- end }}
+      secretName: {{ $fullName }}-tls
   {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
@@ -32,7 +31,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "graphprotocol-node.fullname" $ }}
+                name: {{ $fullName }}
                 port:
                   number: 8000
     {{- end }}
@@ -42,7 +41,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "graphprotocol-node.fullname" . }}-rpc
+  name: {{ $fullName }}-rpc
   labels:
     {{- include "graphprotocol-node.labels" . | nindent 4 }}
   {{- with .Values.ingressRpc.annotations }}
@@ -53,15 +52,13 @@ spec:
   {{- if .Values.ingressRpc.ingressClassName }}
   ingressClassName: {{ .Values.ingressRpc.ingressClassName }}
   {{- end }}
-  {{- if .Values.ingressRpc.tls }}
+  {{- if .Values.ingressRpc.tls.enabled }}
   tls:
-    {{- range .Values.ingressRpc.tls }}
     - hosts:
-        {{- range .hosts }}
+      {{- range .Values.ingressRpc.hosts }}
         - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
+      {{- end }}
+      secretName: {{ $fullName }}-rpc-tls
   {{- end }}
   rules:
     {{- range .Values.ingressRpc.hosts }}
@@ -72,7 +69,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "graphprotocol-node.fullname" $ }}
+                name: {{ $fullName }}
                 port:
                   number: 8020
     {{- end }}
@@ -82,7 +79,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "graphprotocol-node.fullname" . }}-ws
+  name: {{ $fullName }}-ws
   labels:
     {{- include "graphprotocol-node.labels" . | nindent 4 }}
   {{- with .Values.ingressWebsocket.annotations }}
@@ -93,15 +90,13 @@ spec:
   {{- if .Values.ingressWebsocket.ingressClassName }}
   ingressClassName: {{ .Values.ingressWebsocket.ingressClassName }}
   {{- end }}
-  {{- if .Values.ingressWebsocket.tls }}
+  {{- if .Values.ingressWebsocket.tls.enabled }}
   tls:
-    {{- range .Values.ingressWebsocket.tls }}
     - hosts:
-        {{- range .hosts }}
+      {{- range .Values.ingressWebsocket.hosts }}
         - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
+      {{- end }}
+      secretName: {{ $fullName }}-ws-tls
   {{- end }}
   rules:
     {{- range .Values.ingressWebsocket.hosts }}
@@ -112,7 +107,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "graphprotocol-node.fullname" $ }}
+                name: {{ $fullName }}
                 port:
                   number: 8001
     {{- end }}
@@ -122,7 +117,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "graphprotocol-node.fullname" . }}-index
+  name: {{ $fullName }}-index
   labels:
     {{- include "graphprotocol-node.labels" . | nindent 4 }}
   {{- with .Values.ingressIndex.annotations }}
@@ -133,15 +128,13 @@ spec:
   {{- if .Values.ingressIndex.ingressClassName }}
   ingressClassName: {{ .Values.ingressIndex.ingressClassName }}
   {{- end }}
-  {{- if .Values.ingressIndex.tls }}
+  {{- if .Values.ingressIndex.tls.enabled }}
   tls:
-    {{- range .Values.ingressIndex.tls }}
     - hosts:
-        {{- range .hosts }}
+      {{- range .Values.ingressIndex.hosts }}
         - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
+      {{- end }}
+      secretName: {{ $fullName }}-index-tls
   {{- end }}
   rules:
     {{- range .Values.ingressIndex.hosts }}
@@ -152,7 +145,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "graphprotocol-node.fullname" $ }}
+                name: {{ $fullName }}
                 port:
                   number: 8030
     {{- end }}
