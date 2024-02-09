@@ -2,9 +2,9 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.ingress.host }}
+  name: ingress-cert
 spec:
-  secretName: {{ .Values.ingress.host }}-tls
+  secretName: ingress-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
@@ -20,9 +20,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.ingressIndex.host }}
+  name: ingressIndex-cert
 spec:
-  secretName: {{ .Values.ingressIndex.host }}-tls
+  secretName: ingressIndex-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
@@ -38,9 +38,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.ingressRpc.host }}
+  name: ingressRpc-cert
 spec:
-  secretName: {{ .Values.ingressRpc.host }}-tls
+  secretName: ingressRpc-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
@@ -56,9 +56,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.ingressWebsocket.host }}
+  name: ingressWebsocket-cert
 spec:
-  secretName: {{ .Values.ingressWebsocket.host }}-tls
+  secretName: ingressWebsocket-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
