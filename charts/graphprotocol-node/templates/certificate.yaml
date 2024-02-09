@@ -21,9 +21,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ $fullName }}-ingressIndex-cert
+  name: {{ $fullName }}-ingress-index-cert
 spec:
-  secretName: {{ $fullName }}-ingressIndex-tls
+  secretName: {{ $fullName }}-ingress-index-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
@@ -39,9 +39,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ $fullName }}-ingressRpc-cert
+  name: {{ $fullName }}-ingress-rpc-cert
 spec:
-  secretName: {{ $fullName }}-ingressRpc-tls
+  secretName: {{ $fullName }}-ingress-rpc-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
@@ -57,9 +57,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ $fullName }}-ingressWebsocket-cert
+  name: {{ $fullName }}-ingress-websocket-cert
 spec:
-  secretName: {{ $fullName }}-ingressWebsocket-tls
+  secretName: {{ $fullName }}-ingress-websocket-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
