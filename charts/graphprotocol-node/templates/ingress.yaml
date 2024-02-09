@@ -20,7 +20,7 @@ spec:
       {{- range .Values.ingress.hosts }}
         - {{ . | quote }}
       {{- end }}
-      secretName: {{ $fullName }}-tls
+      secretName: {{ $fullName }}-ingress-tls
   {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
@@ -34,6 +34,44 @@ spec:
                 name: {{ $fullName }}
                 port:
                   number: 8000
+    {{- end }}
+{{- end }}
+---
+{{- if .Values.ingressIndex.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-index
+  labels:
+    {{- include "graphprotocol-node.labels" . | nindent 4 }}
+  {{- with .Values.ingressIndex.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingressIndex.ingressClassName }}
+  ingressClassName: {{ .Values.ingressIndex.ingressClassName }}
+  {{- end }}
+  {{- if .Values.ingressIndex.tls.enabled }}
+  tls:
+    - hosts:
+      {{- range .Values.ingressIndex.hosts }}
+        - {{ . | quote }}
+      {{- end }}
+      secretName: {{ $fullName }}-ingress-index-tls
+  {{- end }}
+  rules:
+    {{- range .Values.ingressIndex.hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: 8030
     {{- end }}
 {{- end }}
 ---
@@ -58,7 +96,7 @@ spec:
       {{- range .Values.ingressRpc.hosts }}
         - {{ . | quote }}
       {{- end }}
-      secretName: {{ $fullName }}-rpc-tls
+      secretName: {{ $fullName }}-ingress-rpc-tls
   {{- end }}
   rules:
     {{- range .Values.ingressRpc.hosts }}
@@ -96,7 +134,7 @@ spec:
       {{- range .Values.ingressWebsocket.hosts }}
         - {{ . | quote }}
       {{- end }}
-      secretName: {{ $fullName }}-ws-tls
+      secretName: {{ $fullName }}-ingress-websocket-tls
   {{- end }}
   rules:
     {{- range .Values.ingressWebsocket.hosts }}
@@ -110,43 +148,5 @@ spec:
                 name: {{ $fullName }}
                 port:
                   number: 8001
-    {{- end }}
-{{- end }}
----
-{{- if .Values.ingressIndex.enabled -}}
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: {{ $fullName }}-index
-  labels:
-    {{- include "graphprotocol-node.labels" . | nindent 4 }}
-  {{- with .Values.ingressIndex.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-spec:
-  {{- if .Values.ingressIndex.ingressClassName }}
-  ingressClassName: {{ .Values.ingressIndex.ingressClassName }}
-  {{- end }}
-  {{- if .Values.ingressIndex.tls.enabled }}
-  tls:
-    - hosts:
-      {{- range .Values.ingressIndex.hosts }}
-        - {{ . | quote }}
-      {{- end }}
-      secretName: {{ $fullName }}-index-tls
-  {{- end }}
-  rules:
-    {{- range .Values.ingressIndex.hosts }}
-    - host: {{ . | quote }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ $fullName }}
-                port:
-                  number: 8030
     {{- end }}
 {{- end }}
