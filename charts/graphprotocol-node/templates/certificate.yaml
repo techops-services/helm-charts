@@ -1,10 +1,11 @@
+{{- $fullName := include "graphprotocol-node.fullname" . -}}
 {{- if and .Values.ingress.enabled .Values.ingress.tls.enabled }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: ingress-cert
+  name: {{ $fullName }}-ingress-cert
 spec:
-  secretName: ingress-tls
+  secretName: {{ $fullName }}-ingress-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
@@ -20,9 +21,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: ingressIndex-cert
+  name: {{ $fullName }}-ingressIndex-cert
 spec:
-  secretName: ingressIndex-tls
+  secretName: {{ $fullName }}-ingressIndex-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
@@ -38,9 +39,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: ingressRpc-cert
+  name: {{ $fullName }}-ingressRpc-cert
 spec:
-  secretName: ingressRpc-tls
+  secretName: {{ $fullName }}-ingressRpc-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
@@ -56,9 +57,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: ingressWebsocket-cert
+  name: {{ $fullName }}-ingressWebsocket-cert
 spec:
-  secretName: ingressWebsocket-tls
+  secretName: {{ $fullName }}-ingressWebsocket-tls
   duration: 2160h
   renewBefore: 2158h
   issuerRef:
