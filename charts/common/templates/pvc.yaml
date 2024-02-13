@@ -16,9 +16,9 @@ spec:
   {{ toYaml . | indent 4 }}
   {{- end }}
   {{- if (eq "-" .storageClass) }}
-    storageClassName: ""
+  storageClassName: ""
   {{- else }}
-    storageClassName: {{ $fullName }}-{{ $volume.name }}-sc
+  storageClassName: {{ $fullName }}-{{ $volume.name }}-sc
   {{- end }}
   {{- if .resources }}
   resources:
