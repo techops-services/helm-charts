@@ -31,6 +31,8 @@ deployment:
 #      resources:
 #        requests:
 #          storage: 4Gi
+#      If set to "-", results in storageClassName: "", which disables dynamic provisioning of volume
+#      storageClass: "-"
 #
 #    - name: config
 #      mountPath: /config

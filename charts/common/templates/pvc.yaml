@@ -15,7 +15,11 @@ spec:
   accessModes:
   {{ toYaml . | indent 4 }}
   {{- end }}
-  storageClassName: {{ $fullName }}-{{ $volume.name }}-sc
+  {{- if (eq "-" .storageClass) }}
+    storageClassName: ""
+  {{- else }}
+    storageClassName: {{ $fullName }}-{{ $volume.name }}-sc
+  {{- end }}
   {{- if .resources }}
   resources:
     {{- toYaml .resources | nindent 4 }}
