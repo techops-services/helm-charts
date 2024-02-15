@@ -17,7 +17,7 @@ spec:
   {{- end }}
 {{- end }}
 ---
-{{- if and .Values.ingressIndex.enabled .Values.ingressIndex.tls.enabled }}
+{{ if and .Values.ingressIndex.enabled .Values.ingressIndex.tls.enabled -}}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -35,7 +35,7 @@ spec:
   {{- end }}
 {{- end }}
 ---
-{{- if and .Values.ingressRpc.enabled .Values.ingressRpc.tls.enabled }}
+{{ if and .Values.ingressRpc.enabled .Values.ingressRpc.tls.enabled -}}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -53,7 +53,7 @@ spec:
   {{- end }}
 {{- end }}
 ---
-{{- if and .Values.ingressWebsocket.enabled .Values.ingressWebsocket.tls.enabled }}
+{{ if and .Values.ingressWebsocket.enabled .Values.ingressWebsocket.tls.enabled -}}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
