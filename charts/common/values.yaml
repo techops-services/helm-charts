@@ -16,6 +16,25 @@ service:
 
 deployment:
   enabled: true
+  initContainers: []
+  #   - name: db-migration
+  #     image: "your-migration-image:latest"
+  #     command:
+  #       - "your-migration-command"
+  #     args:
+  #       - "your-argument-1"
+  #       - "your-argument-2"
+  #     env:
+  #       DB_CONNECTION_STRING:
+  #         type: "kv"
+  #         value: "your-database-connection-string"
+  #       SECRET_KEY:
+  #         type: "parameterStore"
+  #         name: "secret-key-name"
+  #       CONFIG_VALUE:
+  #         type: "configmapRef"
+  #         name: "configmap-name"
+  #         key: "config-key"
   volumes: []
 #    - name: data
 #      mountPath: /data
@@ -168,8 +187,8 @@ securityContext:
   # runAsNonRoot: true
   # runAsUser: 1000
 
-ingress:
-  className: traefik
+ingressClassName: "traefik"
+ingress: {}
 #  enabled: false
 #  className: ""
 #  annotations:

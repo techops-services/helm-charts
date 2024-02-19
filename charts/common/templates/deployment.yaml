@@ -31,6 +31,40 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+      {{- if .Values.deployment.initContainers }}
+      initContainers:
+        {{- range .Values.deployment.initContainers }}
+        - name: {{ .name }}
+          image: {{ .image }}
+          {{- if .command }}
+          command:
+            {{ toYaml .command | nindent 12 }}
+          {{- end }}
+          {{- if .args }}
+          args:
+            {{ toYaml .args | nindent 12 }}
+          {{- end }}
+          {{- if .env }}
+          env:
+            {{- range $k, $v := .env }}
+            - name: {{ $k | quote }}
+            {{- if eq $v.type "kv" }}
+              value: {{ $v.value | quote }}
+            {{- else if eq $v.type "parameterStore" }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ $fullName }}-{{ $v.name }}"
+                  key: "{{ $fullName }}-{{ $v.name }}"
+            {{- else if eq $v.type "configmapRef" }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
