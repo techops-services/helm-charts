@@ -168,7 +168,8 @@ securityContext:
   # runAsNonRoot: true
   # runAsUser: 1000
 
-ingress: {}
+ingress:
+  className: traefik
 #  enabled: false
 #  className: ""
 #  annotations:

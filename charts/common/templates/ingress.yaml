@@ -12,7 +12,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ $fullName }}-http-basic-auth@kubernetescrd
   {{- end }}
 spec:
-  ingressClassName: traefik
+  ingressClassName: {{ .Values.ingress.className }}
   {{- if .Values.service.tls.enabled }}
   tls:
     - hosts:
