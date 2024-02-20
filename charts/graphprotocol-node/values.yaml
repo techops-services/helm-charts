@@ -94,8 +94,8 @@ ingress:
     # kubernetes.io/tls-acme: "true"
   hosts:
     # - chart-example.local
-  tls: []
-    # enabled: true
+  tls:
+    enabled: false
     # issuerName: letsencrypt # could also be cloudflare or whatever else, depending on the cert manager used by the cluster
 
 ingressRpc:
@@ -106,8 +106,8 @@ ingressRpc:
     # kubernetes.io/tls-acme: "true"
   hosts:
     # - chart-example.local
-  tls: []
-    # enabled: true
+  tls:
+    enabled: false
     # issuerName: letsencrypt # could also be cloudflare or whatever else, depending on the cert manager used by the cluster
 
 ingressIndex:
@@ -118,8 +118,8 @@ ingressIndex:
     # kubernetes.io/tls-acme: "true"
   hosts:
     # - chart-example.local
-  tls: []
-    # enabled: true
+  tls:
+    enabled: false
     # issuerName: letsencrypt # could also be cloudflare or whatever else, depending on the cert manager used by the cluster
 
 ingressWebsocket:
@@ -130,8 +130,8 @@ ingressWebsocket:
     # kubernetes.io/tls-acme: "true"
   hosts:
     # - chart-example.local
-  tls: []
-    # enabled: true
+  tls:
+    enabled: false
     # issuerName: letsencrypt # could also be cloudflare or whatever else, depending on the cert manager used by the cluster
 
 # error, info, or debug
