@@ -17,7 +17,7 @@ spec:
             app: {{ $fullName }}
             cron: {{ $job.name }}
         spec:
-        {{- with $job.imagePullSecrets }}
+        {{- with $job.image.imagePullSecrets }}
           imagePullSecrets:
 {{ toYaml . | indent 12 }}
         {{- end }}
