@@ -88,8 +88,13 @@ cronjob:
           - name: myregistrykey
       # optional env vars
       env:
-        - name: ECHO_VAR
-          value: "busybox"
+        SOME_ENV_VAR:
+          type: kv
+          value: 0.0.0.0
+        SOME_PARAMETER_SECRET:
+          type: parameterStore
+          name: some-parameter-secret
+          parameter_name: /eks/cluster-name/component-name/secret-name
       envFrom:
         - secretRef:
             name: secret_data

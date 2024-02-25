@@ -46,7 +46,27 @@ spec:
             name: {{ $job.name }}
             {{- with $job.env }}
             env:
-{{ toYaml . | indent 12 }}
+              {{- range $key, $value := . }}
+              {{- if hasKey $value "type" }}
+              - name: {{ $key | quote }}
+              {{- if eq $value.type "kv" }}
+                value: {{ $value.value | quote }}
+              {{- else if eq $value.type "parameterStore" }}
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{ $fullName }}-{{ $value.name }}"
+                    key: "{{ $fullName }}-{{ $value.name }}"
+              {{- else if eq $value.type "configmapRef" }}
+                valueFrom:
+                  configMapKeyRef:
+                    name: {{ $value.name | quote }}
+                    key: {{ $value.key | quote }}
+              {{- end }}
+              {{- else }}
+              - name: {{ $value.name | quote }}
+                value: {{ $value.value | quote }}
+              {{- end }}
+              {{- end }}
             {{- end }}
             {{- with $job.envFrom }}
             envFrom:
