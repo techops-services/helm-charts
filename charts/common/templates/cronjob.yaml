@@ -17,6 +17,10 @@ spec:
             app: {{ $fullName }}
             cron: {{ $job.name }}
         spec:
+        {{- with $job.imagePullSecrets }}
+          imagePullSecrets:
+{{ toYaml . | indent 12 }}
+        {{- end }}
         {{- if hasKey $job "serviceAccount" }}
         {{- if hasKey $job.serviceAccount "name" }}
           serviceAccountName: {{ $job.serviceAccount.name }}

@@ -84,6 +84,8 @@ cronjob:
         repository: busybox
         tag: latest
         imagePullPolicy: Always
+        imagePullSecrets:
+          - name: myregistrykey
       # optional env vars
       env:
         - name: ECHO_VAR
