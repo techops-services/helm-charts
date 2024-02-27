@@ -232,3 +232,6 @@ env:
 httpBasicAuth:
   enabled: true
   usersList: "user1:$apr1$VE.bbkmA$JXZDn5ch.5YY2WmsGFUOt1" # user1:password
+
+httpWwwRedirect:
+  enabled: true
