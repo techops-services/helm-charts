@@ -3,6 +3,17 @@ entries:
   common:
   - apiVersion: v2
     appVersion: 0.0.25
+    created: "2024-02-27T00:51:41.674788232Z"
+    description: A Helm chart for Kubernetes
+    digest: 71dbe61f342cb195f4bdb96e985e2a85fab52f82b4e49fbc48c999d202286640
+    icon: https://cncf-branding.netlify.app/img/projects/helm/horizontal/color/helm-horizontal-color.png
+    name: common
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/common-0.0.26/common-0.0.26.tgz
+    version: 0.0.26
+  - apiVersion: v2
+    appVersion: 0.0.25
     created: "2024-02-25T17:46:54.02938752Z"
     description: A Helm chart for Kubernetes
     digest: 5a5b36fef2ea42749f8938c2375c8dcb6622f4d2ced92b90e8647f61791982cb
@@ -744,4 +755,4 @@ entries:
     urls:
     - https://github.com/techops-services/helm-charts/releases/download/polymesh-1.0.0/polymesh-1.0.0.tgz
     version: 1.0.0
-generated: "2024-02-25T17:46:54.029641765Z"
+generated: "2024-02-27T00:51:41.674966313Z"
