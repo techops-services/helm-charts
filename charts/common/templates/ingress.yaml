@@ -16,7 +16,7 @@ metadata:
     {{- $middlewares = append $middlewares (printf "%s-%s-http-www-redirect@kubernetescrd" .Release.Namespace $fullName) }}
   {{- end }}
   {{- if ne (len $middlewares) 0 }}
-  traefik.ingress.kubernetes.io/router.middlewares: {{ join "," $middlewares }}
+    traefik.ingress.kubernetes.io/router.middlewares: {{ join "," $middlewares }}
   {{- end }}
 spec:
   ingressClassName: {{ .Values.ingressClassName }}
