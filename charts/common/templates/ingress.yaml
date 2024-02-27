@@ -11,6 +11,9 @@ metadata:
   {{- if .Values.httpBasicAuth.enabled }}
     traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ $fullName }}-http-basic-auth@kubernetescrd
   {{- end }}
+  {{- if .Values.httpWwwRedirect.enabled }}
+    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ $fullName }}-http-www-redirect@kubernetescrd
+  {{- end }}
 spec:
   ingressClassName: {{ .Values.ingressClassName }}
   {{- if .Values.service.tls.enabled }}
