@@ -204,6 +204,15 @@ ingress: {}
 #  #    hosts:
 #  #      - chart-example.local
 
+# If enabled will create Traefik Middleware and apply to Ingress
+# to redirect http to https and www to non-www
+httpWwwRedirect:
+  enabled: false
+
+httpBasicAuth:
+  enabled: false
+#  usersList: user1:hashed_pasword1,user2:hashed_password2
+
 resources:
   {}
 
@@ -246,7 +255,3 @@ env:
 #     type: parameterStore
 #     name: example-db
 #     parameter_name: DB_PASSWORD
-
-httpBasicAuth:
-  enabled: false
-#  usersList: user1:hashed_pasword1,user2:hashed_password2
