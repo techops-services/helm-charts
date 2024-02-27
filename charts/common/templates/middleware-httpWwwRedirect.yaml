@@ -8,6 +8,6 @@ metadata:
 spec:
   redirectRegex:
     permanent: true
-    regex: ^(http)://(www\.)?(.*)
-    replacement: https://$3
+    regex: "^(http)://(www\\.)?(.*)"
+    replacement: "https://$$3"
 {{- end }}
