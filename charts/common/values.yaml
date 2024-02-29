@@ -197,12 +197,9 @@ ingress: {}
 #    {}
 #    # kubernetes.io/ingress.class: nginx
 #    # kubernetes.io/tls-acme: "true"
-#  host: example.com
-#
-#  tls: []
-#  #  - secretName: chart-example-tls
-#  #    hosts:
-#  #      - chart-example.local
+#  hosts:
+#    - example.com
+#    - www.example.com
 
 # If enabled will create Traefik Middleware and apply to Ingress
 # to redirect http to https and www to non-www
