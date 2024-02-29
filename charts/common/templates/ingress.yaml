@@ -16,18 +16,21 @@ metadata:
     {{- $middlewares = append $middlewares (printf "%s-%s-http-www-redirect@kubernetescrd" .Release.Namespace $fullName) }}
   {{- end }}
   {{- if ne (len $middlewares) 0 }}
-    traefik.ingress.kubernetes.io/router.middlewares: {{ join "," $middlewares }}
+    traefik.ingress.kubernetes.io/router.middlewares: {{ join ", " $middlewares }}
   {{- end }}
 spec:
   ingressClassName: {{ .Values.ingressClassName }}
   {{- if .Values.service.tls.enabled }}
   tls:
     - hosts:
-        - {{ .Values.ingress.host }}
+      {{- range .Values.ingress.hosts }}
+        - {{ . | quote }}
+      {{- end }}
       secretName: {{ $fullName }}-tls
   {{- end }}
   rules:
-    - host: {{ .Values.ingress.host }}
+    {{- range .Values.ingress.hosts }}
+    - host: {{ . | quote }}
       http:
         paths:
           - backend:
@@ -37,4 +40,5 @@ spec:
                   name: http
             path: /
             pathType: ImplementationSpecific
+    {{- end }}
 {{- end }}

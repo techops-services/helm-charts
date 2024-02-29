@@ -9,7 +9,7 @@ service:
   type: ClusterIP
   containerPort: 5000
   tls:
-    enabled: false
+    enabled: true
     issuerName: "test"
 
 deployment:
@@ -186,12 +186,9 @@ ingress:
     {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
-  host: example.com
-
-  tls:
-    - secretName: chart-example-tls
-      hosts:
-        - chart-example.local
+  hosts:
+    - example.com
+    - www.example.com
 
 resources:
   limits:

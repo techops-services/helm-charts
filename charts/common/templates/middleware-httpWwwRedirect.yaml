@@ -1,7 +1,7 @@
 {{- if .Values.httpWwwRedirect.enabled }}
 {{- $fullName := include "common.fullname" . -}}
 ---
-apiVersion: traefik.io/v1alpha1
+apiVersion: traefik.containo.us/v1alpha1
 kind: Middleware
 metadata:
   name: {{ $fullName }}-http-www-redirect
@@ -9,5 +9,5 @@ spec:
   redirectRegex:
     permanent: true
     regex: "^(http)://(www\\.)?(.*)"
-    replacement: "https://$$3"
+    replacement: "https://$3"
 {{- end }}
