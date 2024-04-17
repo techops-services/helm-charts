@@ -12,5 +12,7 @@ spec:
     name: {{ .Values.service.tls.issuerName }}
     kind: ClusterIssuer
   dnsNames:
-    - "{{ .Values.ingress.host }}"
+  {{- range .Values.ingress.hosts }}
+    - {{ . | quote }}
+  {{- end }}
 {{- end }}
