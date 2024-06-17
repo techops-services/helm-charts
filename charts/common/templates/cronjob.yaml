@@ -44,33 +44,24 @@ spec:
           - image: "{{ $job.image.repository }}:{{ $job.image.tag }}"
             imagePullPolicy: {{ $job.image.imagePullPolicy }}
             name: {{ $job.name }}
-            {{- with $job.env }}
+            {{- if $job.env }}
             env:
-              {{- range $key, $value := . }}
-              {{- if hasKey $value "type" }}
-              - name: {{ $key | quote }}
-              {{- if eq $value.type "kv" }}
-                value: {{ $value.value | quote }}
-              {{- else if eq $value.type "parameterStore" }}
+              {{- range $k, $v := $job.env }}
+              - name: {{ $k | quote }}
+              {{- if eq $v.type "kv" }}
+                value: {{ $v.value | quote }}
+              {{- else if eq $v.type "parameterStore" }}
                 valueFrom:
                   secretKeyRef:
-                    name: "{{ $fullName }}-{{ $value.name }}"
-                    key: "{{ $fullName }}-{{ $value.name }}"
-              {{- else if eq $value.type "configmapRef" }}
+                    name: "{{ $fullName }}-{{ $v.name }}"
+                    key: "{{ $fullName }}-{{ $v.name }}"
+              {{- else if eq $v.type "configmapRef" }}
                 valueFrom:
                   configMapKeyRef:
-                    name: {{ $value.name | quote }}
-                    key: {{ $value.key | quote }}
-              {{- end }}
-              {{- else }}
-              - name: {{ $value.name | quote }}
-                value: {{ $value.value | quote }}
+                    name: {{ $v.name | quote }}
+                    key: {{ $v.key | quote }}
               {{- end }}
               {{- end }}
-            {{- end }}
-            {{- with $job.envFrom }}
-            envFrom:
-{{ toYaml . | indent 12 }}
             {{- end }}
             {{- if $job.command }}
             command: {{ $job.command }}
