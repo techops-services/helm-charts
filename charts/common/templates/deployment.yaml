@@ -40,6 +40,9 @@ spec:
           command:
             {{ toYaml .command | nindent 12 }}
           {{- end }}
+          {{- if .restartPolicy }}
+          restartPolicy: {{ .restartPolicy }}
+          {{- end }}
           {{- if .args }}
           args:
             {{ toYaml .args | nindent 12 }}
