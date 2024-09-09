@@ -225,11 +225,21 @@ resources:
   #   memory: 128Mi
 
 autoscaling: {}
-#  enabled: false
-#  minReplicas: 1
-#  maxReplicas: 1
-#  targetCPUUtilizationPercentage: 80
-#  targetMemoryUtilizationPercentage: 80
+  # enabled: false
+  # minReplicas: 2
+  # maxReplicas: 6
+  # targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+  # scaleUp:
+  #   stabilizationWindowSeconds: 30
+  #   policyType: pod
+  #   value: 6
+  #   periodSeconds: 30
+  # scaleDown:
+  #   stabilizationWindowSeconds: 300
+  #   policyType: pod
+  #   value: 2
+  #   periodSeconds: 30
 
 nodeSelector: {}
 
