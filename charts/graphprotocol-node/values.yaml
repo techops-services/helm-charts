@@ -85,6 +85,11 @@ role: "query-node"
 monitoring:
   enabled: false
   labels: "prometheus"
+  serviceMonitor: {}
+    # metricRelabelings:
+    #   - action: drop
+    #     regex: foo_bar
+    #     sourceLabels: [__name__]
 
 ingress:
   enabled: false
