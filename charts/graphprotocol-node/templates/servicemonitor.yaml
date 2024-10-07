@@ -11,4 +11,12 @@ spec:
     {{- include "graphprotocol-node.selectorLabels" . | nindent 6 }}
   endpoints:
   - port: metrics
+    {{- if .Values.monitoring.serviceMonitor.metricRelabelings }}
+    metricRelabelings:
+      {{- range .Values.monitoring.serviceMonitor.metricRelabelings }}
+      - action: {{ .action }}
+        regex: {{ .regex }}
+        sourceLabels: {{ .sourceLabels | toJson }}
+      {{- end }}
+    {{- end }}
 {{- end -}}
