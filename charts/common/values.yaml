@@ -146,7 +146,28 @@ cronjob:
 #                values:
 #                - e2e-az1
 #                - e2e-az2
-
+sidecars: []
+#  - name: some-long-running-sidecar-container
+#    image:
+#      repository: python
+#      tag: 3-alpine
+#    env:
+#     SOME_ENV_VAR_1:
+#       type: kv
+#       value: some-value-1
+#     SOME_ENV_VAR_2:
+#       type: kv
+#       value: some-value-2
+#    args:
+#      - some-argument
+#    resources:
+#      limits:
+#        cpu: 250m
+#        memory: 1024Mi
+#      requests:
+#        cpu: 100m
+#        memory: 512Mi
+#    restartPolicy: Always
 image:
   repository: organization/name
   pullPolicy: IfNotPresent
@@ -224,7 +245,8 @@ resources:
   #   cpu: 100m
   #   memory: 128Mi
 
-autoscaling: {}
+autoscaling:
+  {}
   # enabled: false
   # minReplicas: 2
   # maxReplicas: 6
