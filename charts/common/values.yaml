@@ -187,13 +187,19 @@ livenessProbe: {}
 readinessProbe: {}
 
 serviceAccount:
-  # Specifies whether a service account should be created
   create: false
-  # The name of the service account to use.
-  name: ""
-  # Annotations to add to the service account
   annotations:
-#    eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
+    # eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
+  rules: []
+#    - apiGroups: ["batch"]
+#      resources: ["jobs"]
+#      verbs: ["get", "list", "create", "delete", "watch"]
+#    - apiGroups: [""]
+#      resources: ["pods"]
+#      verbs: ["get", "list", "watch"]
+#    - apiGroups: [""]
+#      resources: ["pods/log"]
+#      verbs: ["get"]
 
 podAnnotations: {}
 
