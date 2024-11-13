@@ -86,7 +86,7 @@ spec:
         {{- end }}
       {{- end }}
       containers:
-        - name:  {{ include "common.fullname" . }}
+        - name: {{ include "common.fullname" . }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -142,6 +142,48 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+
+        {{- if .Values.sidecars }}
+        {{- range .Values.sidecars }}
+        - name: {{ .name }}
+          image: "{{ .image.repository }}:{{ .image.tag }}"
+          {{- if .volumeMounts }}
+          volumeMounts:
+            {{- range .volumeMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+            {{- end }}
+          {{- end }}
+          {{- if .args }}
+          args:
+            {{- toYaml .args | nindent 12 }}
+          {{- end }}
+          {{- if .env }}
+          env:
+            {{- range $k, $v := .env }}
+            - name: {{ $k | quote }}
+              {{- if eq $v.type "kv" }}
+              value: {{ $v.value | quote }}
+              {{- else if eq $v.type "parameterStore" }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ $fullName }}-{{ $v.name }}"
+                  key: "{{ $fullName }}-{{ $v.name }}"
+              {{- else if eq $v.type "configmapRef" }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if .resources }}
+          resources:
+            {{- toYaml .resources | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
