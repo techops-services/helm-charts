@@ -154,6 +154,14 @@ spec:
               mountPath: {{ .mountPath }}
             {{- end }}
           {{- end }}
+          {{- if .ports }}
+          ports:
+            {{- range .ports }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort }}
+              protocol: {{ .protocol | default "TCP" }}
+            {{- end }}
+          {{- end }}
           {{- if .args }}
           args:
             {{- toYaml .args | nindent 12 }}
