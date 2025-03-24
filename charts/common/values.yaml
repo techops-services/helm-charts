@@ -151,6 +151,12 @@ sidecars: []
 #    image:
 #      repository: python
 #      tag: 3-alpine
+#    ports:
+#    - name: http
+#      containerPort: 80
+#    - name: metrics
+#      containerPort: 8081
+#      protocol: TCP
 #    env:
 #     SOME_ENV_VAR_1:
 #       type: kv
