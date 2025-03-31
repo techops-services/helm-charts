@@ -117,4 +117,5 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      terminationGracePeriodSeconds: {{ default 10 .Values.terminationGracePeriodSeconds }}
 {{- end }}

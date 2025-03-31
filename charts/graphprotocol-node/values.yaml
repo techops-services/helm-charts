@@ -146,3 +146,6 @@ logLevel: error
 env:
   GRAPH_GRAPHQL_MAX_FIRST: 1000
   EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE: instant
+
+# If you need to increase the default of 10 seconds, use this:
+# terminationGracePeriodSeconds: 30
