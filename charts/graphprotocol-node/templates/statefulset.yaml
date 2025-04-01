@@ -1,14 +1,14 @@
-{{- if eq .Values.role "query-node" }}
+{{- if eq .Values.role "index-node" }}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "graphprotocol-node.fullname" . }}
   labels:
     {{- include "graphprotocol-node.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount }}
-  strategy:
-    type: RollingUpdate
+  serviceName: "{{ include "graphprotocol-node.fullname" . }}-headless"
+  replicas: 1
+  podManagementPolicy: OrderedReady
   selector:
     matchLabels:
       {{- include "graphprotocol-node.selectorLabels" . | nindent 6 }}
@@ -29,7 +29,7 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
-        - name: wait-for-rta
+        - name: wait-for-psql
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/bin/sh", "-c"]
@@ -43,13 +43,16 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: ["/bin/sh", "-c", "sleep 60"]
+                command: ["/bin/sh", "-c", "sleep 10"]
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            {{- /* Index (ingest) node_id should equal BLOCK_INGESTOR env value to work in this mode */}}
+            - name: BLOCK_INGESTOR
+              value: {{ .Values.blockIngestorNodeId | quote }}
             - name: node_id
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
+              value: {{ .Values.blockIngestorNodeId | quote }}
+            - name: GRAPH_LOG
+              value: {{ .Values.logLevel | quote }}
             - name: node_role
               value: {{ .Values.role | quote }}
             - name: GRAPH_KILL_IF_UNRESPONSIVE
@@ -87,6 +90,9 @@ spec:
             - name: graphql-ws
               containerPort: 8001
               protocol: TCP
+            - name: index
+              containerPort: 8030
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /
@@ -98,13 +104,13 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-          - name: config
-            mountPath: "/etc/graph-node"
-            readOnly: true
+            - name: config
+              mountPath: "/etc/graph-node"
+              readOnly: true
       volumes:
-      - name: config
-        secret:
-          secretName: {{ include "graphprotocol-node.fullname" . }}
+        - name: config
+          secret:
+            secretName: {{ include "graphprotocol-node.fullname" . }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -117,5 +123,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      terminationGracePeriodSeconds: {{ default 10 .Values.terminationGracePeriodSeconds }}
 {{- end }}
