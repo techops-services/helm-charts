@@ -297,29 +297,31 @@ env:
 #     name: example-db
 #     parameter_name: DB_PASSWORD
 
-serviceMonitor:
+serviceMonitors:
   enabled: false
-  # The label used by the Prometheus Operator to discover ServiceMonitors
-  additionalLabels: {}
-    # release: prometheus-operator
-  # Namespace where ServiceMonitor resource will be created
-  namespace: ""
-  # Interval at which metrics should be scraped
-  interval: 30s
-  # Timeout for scraping
-  scrapeTimeout: 10s
-  # The path at which metrics are exposed
-  path: /metrics
-  # The port name or number to scrape metrics from
-  port: metrics
-  # Additional relabeling configurations
-  relabelings: []
-  # Additional metric relabeling configurations
-  metricRelabelings: []
-  # Scheme to use for scraping
-  scheme: http
-  # TLS configuration for scraping
-  tlsConfig: {}
-    # insecureSkipVerify: true
-  # Additional ServiceMonitor specifications
-  spec: {}
+  monitors:
+    - name: service1
+      # The label used by the Prometheus Operator to discover ServiceMonitors
+      additionalLabels: {}
+        # release: prometheus-operator
+      # Namespace where ServiceMonitor resource will be created
+      namespace: ""
+      # Interval at which metrics should be scraped
+      interval: 30s
+      # Timeout for scraping
+      scrapeTimeout: 10s
+      # The path at which metrics are exposed
+      path: /metrics
+      # The port name or number to scrape metrics from
+      port: metrics
+      # Additional relabeling configurations
+      relabelings: []
+      # Additional metric relabeling configurations
+      metricRelabelings: []
+      # Scheme to use for scraping
+      scheme: http
+      # TLS configuration for scraping
+      tlsConfig: {}
+        # insecureSkipVerify: true
+      # Additional ServiceMonitor specifications
+      spec: {}
