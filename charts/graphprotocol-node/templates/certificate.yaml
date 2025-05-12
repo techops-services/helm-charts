@@ -52,21 +52,3 @@ spec:
     - {{ . | quote }}
   {{- end }}
 {{- end }}
----
-{{ if and .Values.ingressWebsocket.enabled .Values.ingressWebsocket.tls.enabled -}}
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: {{ $fullName }}-ingress-websocket-cert
-spec:
-  secretName: {{ $fullName }}-ingress-websocket-tls
-  duration: 2160h
-  renewBefore: 2158h
-  issuerRef:
-    name: {{ .Values.ingressWebsocket.tls.issuerName }}
-    kind: ClusterIssuer
-  dnsNames:
-  {{- range .Values.ingressWebsocket.hosts }}
-    - {{ . | quote }}
-  {{- end }}
-{{- end }}
