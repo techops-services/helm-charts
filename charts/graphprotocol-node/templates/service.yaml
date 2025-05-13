@@ -23,10 +23,6 @@ spec:
       targetPort: graphql
       protocol: TCP
       name: graphql
-    - port: {{ .Values.service.graphqlWsPort }}
-      targetPort: graphql-ws
-      protocol: TCP
-      name: graphql-ws
     {{- if eq .Values.role "index-node" }}
     - port: {{ .Values.service.indexPort }}
       targetPort: index

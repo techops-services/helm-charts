@@ -7,8 +7,7 @@ replicaCount: 1
 image:
   repository: graphprotocol/graph-node
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: "v0.38.0"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -33,7 +32,6 @@ service:
   metricsPort: 8040
   jsonRpcPort: 8020
   graphqlPort: 8000
-  graphqlWsPort: 8001
   indexPort: 8030
 
 resources: {}
@@ -116,18 +114,6 @@ ingressRpc:
     # issuerName: letsencrypt # could also be cloudflare or whatever else, depending on the cert manager used by the cluster
 
 ingressIndex:
-  enabled: false
-  # ingressClassName: traefik # could also be nginx or whatever else, depending on the ingress controller used by the cluster
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    # - chart-example.local
-  tls:
-    enabled: false
-    # issuerName: letsencrypt # could also be cloudflare or whatever else, depending on the cert manager used by the cluster
-
-ingressWebsocket:
   enabled: false
   # ingressClassName: traefik # could also be nginx or whatever else, depending on the ingress controller used by the cluster
   annotations: {}

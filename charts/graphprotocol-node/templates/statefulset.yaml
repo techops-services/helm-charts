@@ -87,9 +87,6 @@ spec:
             - name: graphql
               containerPort: 8000
               protocol: TCP
-            - name: graphql-ws
-              containerPort: 8001
-              protocol: TCP
             - name: index
               containerPort: 8030
               protocol: TCP
