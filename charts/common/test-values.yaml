@@ -201,7 +201,7 @@ securityContext:
   # runAsUser: 1000
 
 ingress:
-  enabled: true
+  enabled: false
   className: ""
   annotations:
     {}
@@ -254,10 +254,6 @@ httpWwwRedirect:
 # Disable features that require CRDs for testing
 certificates:
   enabled: false
-
-traefik:
-  middlewares:
-    enabled: false
 
 externalSecrets:
   clusterSecretStoreName: "test"
