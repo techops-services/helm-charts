@@ -82,13 +82,13 @@ jobs:
         run: |
           comment_body="## ℹ️ No Helm Chart Changes Detected
 
-No changes were detected in any Helm charts for this PR.
+          No changes were detected in any Helm charts for this PR.
 
-**Checked directories:**
-- \`charts/\`
+          **Checked directories:**
+          - \`charts/\`
 
-The workflow completed successfully with no tests needed. ✅"
-          
+          The workflow completed successfully with no tests needed. ✅"
+
           # Post comment to PR using curl
           curl -X POST \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
@@ -227,29 +227,29 @@ The workflow completed successfully with no tests needed. ✅"
           if [ "${{ steps.helm-tests.outputs.exit-code }}" = "0" ]; then
             comment_body="## 🎉 Helm Chart Tests Passed!
 
-All modified charts have been successfully validated:
+            All modified charts have been successfully validated:
 
-${{ steps.helm-tests.outputs.test-results }}
+            ${{ steps.helm-tests.outputs.test-results }}
 
-**Summary:**
-- ✅ Charts tested: $(echo '${{ needs.detect-changes.outputs.changed-charts }}' | tr ',' ' ')
-- ✅ All template validations passed
-- ✅ All dry-run installations passed
+            **Summary:**
+            - ✅ Charts tested: $(echo '${{ needs.detect-changes.outputs.changed-charts }}' | tr ',' ' ')
+            - ✅ All template validations passed
+            - ✅ All dry-run installations passed
 
-The PR is ready for review! 🚀"
+            The PR is ready for review! 🚀"
           else
             comment_body="## ❌ Helm Chart Tests Failed
 
-Some charts failed validation:
+            Some charts failed validation:
 
-${{ steps.helm-tests.outputs.test-results }}
+            ${{ steps.helm-tests.outputs.test-results }}
 
-**Summary:**
-- 📊 Charts tested: $(echo '${{ needs.detect-changes.outputs.changed-charts }}' | tr ',' ' ')
-- ❌ Failed charts:${{ steps.helm-tests.outputs.failed-charts }}
-- ✅ Successful charts:${{ steps.helm-tests.outputs.success-charts }}
+            **Summary:**
+            - 📊 Charts tested: $(echo '${{ needs.detect-changes.outputs.changed-charts }}' | tr ',' ' ')
+            - ❌ Failed charts:${{ steps.helm-tests.outputs.failed-charts }}
+            - ✅ Successful charts:${{ steps.helm-tests.outputs.success-charts }}
 
-Please fix the issues before merging. 🔧"
+            Please fix the issues before merging. 🔧"
           fi
           
           # Post comment to PR using curl
