@@ -3,26 +3,32 @@ name: Release Charts
 on:
   push:
     branches:
-      - TECH-2871-improve-cicd-charts
+      - TECH-2871-improve-cicd-chartss
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+
 permissions:
   contents: read
   pull-requests: write
 
+env:
+  PR_NUMBER: ${{ github.event.number }}
+
 jobs:
-  release:
-    permissions:
-      contents: write
+  detect-changes:
     runs-on: ubuntu-latest
+    outputs:
+      changed-charts: ${{ steps.changed-charts.outputs.changed-charts }}
+      has-changes: ${{ steps.changed-charts.outputs.has-changes }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Detect changed charts
         id: changed-charts
@@ -64,8 +70,51 @@ jobs:
             echo "has-changes=false" >> $GITHUB_OUTPUT
           fi
 
+  no-changes:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.has-changes == 'false'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post PR comment - No changes
+        if: github.event_name == 'pull_request'
+        run: |
+          comment_body="## ℹ️ No Helm Chart Changes Detected
+
+No changes were detected in any Helm charts for this PR.
+
+**Checked directories:**
+- \`charts/\`
+
+The workflow completed successfully with no tests needed. ✅"
+          
+          # Post comment to PR using curl
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            -d "{\"body\": $(echo "$comment_body" | jq -Rs .)}"
+
+  test-charts:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
       - name: Set up Minikube
-        if: steps.changed-charts.outputs.has-changes == 'true'
         uses: medyagh/setup-minikube@master
         with:
           minikube-version: 'latest'
@@ -73,25 +122,29 @@ jobs:
           driver: docker
 
       - name: kubectl
-        if: steps.changed-charts.outputs.has-changes == 'true'
         run: kubectl get pods -A
 
       - name: Install Helm
-        if: steps.changed-charts.outputs.has-changes == 'true'
         uses: azure/setup-helm@v3
 
       - name: Wait for Minikube to be ready
-        if: steps.changed-charts.outputs.has-changes == 'true'
         run: |
           minikube status
           kubectl get nodes
           kubectl wait --for=condition=Ready node/minikube --timeout=3m
 
       - name: Validate and test changed charts
-        if: steps.changed-charts.outputs.has-changes == 'true'
+        id: helm-tests
+        continue-on-error: true
         run: |
+          # Initialize results tracking
+          TEST_RESULTS=""
+          FAILED_CHARTS=""
+          SUCCESS_CHARTS=""
+          EXIT_CODE=0
+          
           # Convert comma-separated list to array
-          IFS=',' read -ra CHARTS <<< "${{ steps.changed-charts.outputs.changed-charts }}"
+          IFS=',' read -ra CHARTS <<< "${{ needs.detect-changes.outputs.changed-charts }}"
           
           for chart in "${CHARTS[@]}"; do
             echo "=================================="
@@ -104,36 +157,110 @@ jobs:
             # Check if values file exists
             if [ ! -f "$VALUES_FILE" ]; then
               echo "::error::Values file not found: $VALUES_FILE"
-              exit 1
+              FAILED_CHARTS="$FAILED_CHARTS $chart"
+              TEST_RESULTS="$TEST_RESULTS\n❌ **$chart**: Values file not found ($VALUES_FILE)"
+              EXIT_CODE=1
+              continue
             fi
             
+            # Test 1: Helm template validation
             echo "Running Helm template validation for $chart..."
-            helm template "$chart" "charts/$chart" -f "$VALUES_FILE"
-            
-            if [ $? -ne 0 ]; then
-              echo "::error::Helm template validation failed for chart: $chart"
-              exit 1
+            if helm template "$chart" "charts/$chart" -f "$VALUES_FILE" > /dev/null 2>&1; then
+              echo "✅ Template validation passed for $chart"
+              TEMPLATE_STATUS="✅ Template validation passed"
+            else
+              echo "❌ Template validation failed for $chart"
+              TEMPLATE_STATUS="❌ Template validation failed"
+              FAILED_CHARTS="$FAILED_CHARTS $chart"
+              EXIT_CODE=1
             fi
             
+            # Test 2: Dry-run installation
             echo "Performing dry-run Helm installation for $chart..."
-            helm upgrade --install "$chart" "charts/$chart" \
+            if helm upgrade --install "$chart" "charts/$chart" \
               -f "$VALUES_FILE" \
               --create-namespace \
               --namespace "test-namespace-$chart" \
               --timeout 1m \
               --atomic \
-              --dry-run
-            
-            if [ $? -ne 0 ]; then
-              echo "::error::Helm dry-run installation failed for chart: $chart"
-              exit 1
+              --dry-run > /dev/null 2>&1; then
+              echo "✅ Dry-run installation passed for $chart"
+              DRYRUN_STATUS="✅ Dry-run installation passed"
+            else
+              echo "❌ Dry-run installation failed for $chart"
+              DRYRUN_STATUS="❌ Dry-run installation failed"
+              FAILED_CHARTS="$FAILED_CHARTS $chart"
+              EXIT_CODE=1
             fi
             
-            echo "✅ Chart $chart passed all tests"
+            # Add chart results
+            if [[ "$FAILED_CHARTS" == *"$chart"* ]]; then
+              TEST_RESULTS="$TEST_RESULTS\n❌ **$chart**: $TEMPLATE_STATUS, $DRYRUN_STATUS"
+            else
+              SUCCESS_CHARTS="$SUCCESS_CHARTS $chart"
+              TEST_RESULTS="$TEST_RESULTS\n✅ **$chart**: $TEMPLATE_STATUS, $DRYRUN_STATUS"
+            fi
+            
             echo ""
           done
           
-          echo "🎉 All changed charts passed validation!"
+          # Set outputs for PR comment
+          echo "test-results<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$TEST_RESULTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "failed-charts=$FAILED_CHARTS" >> $GITHUB_OUTPUT
+          echo "success-charts=$SUCCESS_CHARTS" >> $GITHUB_OUTPUT
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "🎉 All changed charts passed validation!"
+          else
+            echo "💥 Some charts failed validation!"
+          fi
+          
+          exit $EXIT_CODE
+
+      - name: Post PR comment with test results
+        if: github.event_name == 'pull_request'
+        run: |
+          # Prepare comment body
+          if [ "${{ steps.helm-tests.outputs.exit-code }}" = "0" ]; then
+            comment_body="## 🎉 Helm Chart Tests Passed!
+
+All modified charts have been successfully validated:
+
+${{ steps.helm-tests.outputs.test-results }}
+
+**Summary:**
+- ✅ Charts tested: $(echo '${{ needs.detect-changes.outputs.changed-charts }}' | tr ',' ' ')
+- ✅ All template validations passed
+- ✅ All dry-run installations passed
+
+The PR is ready for review! 🚀"
+          else
+            comment_body="## ❌ Helm Chart Tests Failed
+
+Some charts failed validation:
+
+${{ steps.helm-tests.outputs.test-results }}
+
+**Summary:**
+- 📊 Charts tested: $(echo '${{ needs.detect-changes.outputs.changed-charts }}' | tr ',' ' ')
+- ❌ Failed charts:${{ steps.helm-tests.outputs.failed-charts }}
+- ✅ Successful charts:${{ steps.helm-tests.outputs.success-charts }}
+
+Please fix the issues before merging. 🔧"
+          fi
+          
+          # Post comment to PR using curl
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            -d "{\"body\": $(echo "$comment_body" | jq -Rs .)}"
+          
+          # Exit with the original exit code
+          exit ${{ steps.helm-tests.outputs.exit-code }}
 
       # - name: Run chart-releaser
       #   uses: helm/chart-releaser-action@v1.6.0

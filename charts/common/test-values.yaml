@@ -251,9 +251,6 @@ httpWwwRedirect:
   enabled: false
 
 # Disable features that require CRDs for testing
-certificates:
-  enabled: false
-
 externalSecrets:
   enabled: false
   clusterSecretStoreName: "test"
