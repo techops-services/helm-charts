@@ -10,7 +10,7 @@ service:
   containerPort: 5000
   tls:
     enabled: true
-    issuerName: "test"
+    issuerName: "test1"
 
 deployment:
   enabled: true

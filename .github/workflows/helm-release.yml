@@ -24,6 +24,11 @@ jobs:
       - name: Detect changed charts
         id: changed-charts
         run: |
+          # Get list of all charts by scanning the charts directory
+          ALL_CHARTS=$(find charts/ -maxdepth 1 -type d -not -path charts/ | sed 's|charts/||' | sort)
+          echo "Available charts:"
+          echo "$ALL_CHARTS"
+          
           # Get list of changed files
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
@@ -36,7 +41,7 @@ jobs:
           
           # Check which charts have changes
           CHANGED_CHARTS=""
-          for chart in common graphprotocol-node polymesh; do
+          for chart in $ALL_CHARTS; do
             if echo "$CHANGED_FILES" | grep -q "^charts/$chart/"; then
               if [ -z "$CHANGED_CHARTS" ]; then
                 CHANGED_CHARTS="$chart"
@@ -90,22 +95,8 @@ jobs:
             echo "Testing chart: $chart"
             echo "=================================="
             
-            # Determine the values file path for each chart
-            case "$chart" in
-              "common")
-                VALUES_FILE="charts/common/test-values.yaml"
-                ;;
-              "graphprotocol-node")
-                VALUES_FILE="charts/graphprotocol-node/values.yaml"
-                ;;
-              "polymesh")
-                VALUES_FILE="charts/polymesh/values.yaml"
-                ;;
-              *)
-                echo "Unknown chart: $chart"
-                exit 1
-                ;;
-            esac
+            # Use common test-values.yaml file for all charts
+            VALUES_FILE="charts/$chart/test-values.yaml"
             
             # Check if values file exists
             if [ ! -f "$VALUES_FILE" ]; then
