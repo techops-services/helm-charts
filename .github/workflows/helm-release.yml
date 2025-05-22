@@ -20,50 +20,126 @@ jobs:
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Detect changed charts
+        id: changed-charts
+        run: |
+          # Get list of changed files
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check which charts have changes
+          CHANGED_CHARTS=""
+          for chart in common graphprotocol-node polymesh; do
+            if echo "$CHANGED_FILES" | grep -q "^charts/$chart/"; then
+              if [ -z "$CHANGED_CHARTS" ]; then
+                CHANGED_CHARTS="$chart"
+              else
+                CHANGED_CHARTS="$CHANGED_CHARTS,$chart"
+              fi
+            fi
+          done
+          
+          echo "Changed charts: $CHANGED_CHARTS"
+          echo "changed-charts=$CHANGED_CHARTS" >> $GITHUB_OUTPUT
+          
+          # Set flag if any charts changed
+          if [ -n "$CHANGED_CHARTS" ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set up Minikube
+        if: steps.changed-charts.outputs.has-changes == 'true'
         uses: medyagh/setup-minikube@master
         with:
           minikube-version: 'latest'
           kubernetes-version: 'stable'
           driver: docker
+
       - name: kubectl
+        if: steps.changed-charts.outputs.has-changes == 'true'
         run: kubectl get pods -A
+
       - name: Install Helm
+        if: steps.changed-charts.outputs.has-changes == 'true'
         uses: azure/setup-helm@v3
+
       - name: Wait for Minikube to be ready
+        if: steps.changed-charts.outputs.has-changes == 'true'
         run: |
           minikube status
           kubectl get nodes
           kubectl wait --for=condition=Ready node/minikube --timeout=3m
 
-      - name: Validate Helm template
+      - name: Validate and test changed charts
+        if: steps.changed-charts.outputs.has-changes == 'true'
         run: |
-          echo "Running Helm template validation..."
-          helm template test-app charts/your-chart -f charts/your-chart/ci/test-values.yaml
-
-      - name: Set PR status
-        if: ${{ failure() }}
-        run: |
-          echo "::error::Helm chart validation failed. Please fix the issues before merging."
-          exit 1
-
-      - name: Perform dry-run Helm installation
-        run: |
-          echo "Performing dry-run Helm installation..."
-          helm upgrade --install test-app charts/your-chart \
-            -f charts/your-chart/ci/test-values.yaml \
-            --create-namespace \
-            --namespace test-namespace \
-            --timeout 1m \
-            --atomic \
-            --dry-run
-
-      - name: Set PR status
-        if: ${{ failure() }}
-        run: |
-          echo "::error::Helm chart validation failed. Please fix the issues before merging."
-          exit 1
-
+          # Convert comma-separated list to array
+          IFS=',' read -ra CHARTS <<< "${{ steps.changed-charts.outputs.changed-charts }}"
+          
+          for chart in "${CHARTS[@]}"; do
+            echo "=================================="
+            echo "Testing chart: $chart"
+            echo "=================================="
+            
+            # Determine the values file path for each chart
+            case "$chart" in
+              "common")
+                VALUES_FILE="charts/common/test-values.yaml"
+                ;;
+              "graphprotocol-node")
+                VALUES_FILE="charts/graphprotocol-node/values.yaml"
+                ;;
+              "polymesh")
+                VALUES_FILE="charts/polymesh/values.yaml"
+                ;;
+              *)
+                echo "Unknown chart: $chart"
+                exit 1
+                ;;
+            esac
+            
+            # Check if values file exists
+            if [ ! -f "$VALUES_FILE" ]; then
+              echo "::error::Values file not found: $VALUES_FILE"
+              exit 1
+            fi
+            
+            echo "Running Helm template validation for $chart..."
+            helm template "$chart" "charts/$chart" -f "$VALUES_FILE"
+            
+            if [ $? -ne 0 ]; then
+              echo "::error::Helm template validation failed for chart: $chart"
+              exit 1
+            fi
+            
+            echo "Performing dry-run Helm installation for $chart..."
+            helm upgrade --install "$chart" "charts/$chart" \
+              -f "$VALUES_FILE" \
+              --create-namespace \
+              --namespace "test-namespace-$chart" \
+              --timeout 1m \
+              --atomic \
+              --dry-run
+            
+            if [ $? -ne 0 ]; then
+              echo "::error::Helm dry-run installation failed for chart: $chart"
+              exit 1
+            fi
+            
+            echo "✅ Chart $chart passed all tests"
+            echo ""
+          done
+          
+          echo "🎉 All changed charts passed validation!"
 
       # - name: Run chart-releaser
       #   uses: helm/chart-releaser-action@v1.6.0
