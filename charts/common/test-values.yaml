@@ -201,7 +201,6 @@ securityContext:
   # runAsUser: 1000
 
 ingress:
-  enabled: false
   className: ""
   annotations:
     {}
@@ -249,12 +248,12 @@ httpBasicAuth:
   usersList: "user1:$apr1$VE.bbkmA$JXZDn5ch.5YY2WmsGFUOt1" # user1:password
 
 httpWwwRedirect:
-  enabled: true
+  enabled: false
 
 # Disable features that require CRDs for testing
 certificates:
   enabled: false
 
 externalSecrets:
-  clusterSecretStoreName: "test"
   enabled: false
+#  clusterSecretStoreName: "test"
