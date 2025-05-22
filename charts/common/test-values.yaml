@@ -9,7 +9,7 @@ service:
   type: ClusterIP
   containerPort: 5000
   tls:
-    enabled: true
+    enabled: false
     issuerName: "test"
 
 deployment:
@@ -231,20 +231,20 @@ tolerations: []
 
 affinity: {}
 
-env:
-  DB_NAME:
-    type: kv
-    value: example-db
-  DB_USER_NAME:
-    type: kv
-    value: example
-  DB_USER_PASSWORD:
-    type: parameterStore
-    name: example-db
-    parameter_name: DB_PASSWORD
+# env:
+#   DB_NAME:
+#     type: kv
+#     value: example-db
+#   DB_USER_NAME:
+#     type: kv
+#     value: example
+#   DB_USER_PASSWORD:
+#     type: parameterStore
+#     name: example-db
+#     parameter_name: DB_PASSWORD
 
 httpBasicAuth:
-  enabled: true
+  enabled: false
   usersList: "user1:$apr1$VE.bbkmA$JXZDn5ch.5YY2WmsGFUOt1" # user1:password
 
 httpWwwRedirect:
@@ -256,4 +256,4 @@ certificates:
 
 externalSecrets:
   enabled: false
-#  clusterSecretStoreName: "test"
+  clusterSecretStoreName: "test"
