@@ -10,7 +10,7 @@ service:
   containerPort: 5000
   tls:
     enabled: true
-    issuerName: "test123"
+    issuerName: "test"
 
 deployment:
   enabled: true
@@ -232,9 +232,6 @@ tolerations: []
 
 affinity: {}
 
-externalSecrets:
-  clusterSecretStoreName: "test"
-
 env:
   DB_NAME:
     type: kv
@@ -253,3 +250,15 @@ httpBasicAuth:
 
 httpWwwRedirect:
   enabled: true
+
+# Disable features that require CRDs for testing
+certificates:
+  enabled: false
+
+traefik:
+  middlewares:
+    enabled: false
+
+externalSecrets:
+  clusterSecretStoreName: "test"
+  enabled: false
