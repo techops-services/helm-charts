@@ -137,6 +137,9 @@ jobs:
         id: helm-tests
         continue-on-error: true
         run: |
+          # Create log directory
+          mkdir -p /tmp/helm-logs
+          
           # Initialize results tracking
           TEST_RESULTS=""
           FAILED_CHARTS=""
@@ -147,6 +150,7 @@ jobs:
           IFS=',' read -ra CHARTS <<< "${{ needs.detect-changes.outputs.changed-charts }}"
           
           for chart in "${CHARTS[@]}"; do
+            echo "::group::Testing chart: $chart"
             echo "=================================="
             echo "Testing chart: $chart"
             echo "=================================="
@@ -160,38 +164,70 @@ jobs:
               FAILED_CHARTS="$FAILED_CHARTS $chart"
               TEST_RESULTS="$TEST_RESULTS\n❌ **$chart**: Values file not found ($VALUES_FILE)"
               EXIT_CODE=1
+              echo "::endgroup::"
               continue
             fi
             
             # Test 1: Helm template validation
+            echo "::group::Helm template validation for $chart"
             echo "Running Helm template validation for $chart..."
-            if helm template "$chart" "charts/$chart" -f "$VALUES_FILE"; then
+            
+            # Run helm template and capture both output and exit code
+            set +e  # Don't exit on error
+            TEMPLATE_OUTPUT=$(helm template "$chart" "charts/$chart" -f "$VALUES_FILE" 2>&1)
+            TEMPLATE_EXIT_CODE=$?
+            set -e  # Re-enable exit on error
+            
+            # Always show the output
+            echo "$TEMPLATE_OUTPUT"
+            
+            # Save to log file
+            echo "$TEMPLATE_OUTPUT" > "/tmp/helm-logs/$chart-template.log"
+            
+            if [ $TEMPLATE_EXIT_CODE -eq 0 ]; then
               echo "✅ Template validation passed for $chart"
               TEMPLATE_STATUS="✅ Template validation passed"
             else
-              echo "❌ Template validation failed for $chart"
+              echo "❌ Template validation failed for $chart (exit code: $TEMPLATE_EXIT_CODE)"
               TEMPLATE_STATUS="❌ Template validation failed"
               FAILED_CHARTS="$FAILED_CHARTS $chart"
               EXIT_CODE=1
             fi
+            echo "::endgroup::"
             
             # Test 2: Dry-run installation
+            echo "::group::Dry-run installation for $chart"
             echo "Performing dry-run Helm installation for $chart..."
-            if helm upgrade --install "$chart" "charts/$chart" \
+            
+            # Run helm upgrade with detailed output
+            set +e  # Don't exit on error
+            DRYRUN_OUTPUT=$(helm upgrade --install "$chart" "charts/$chart" \
               -f "$VALUES_FILE" \
               --create-namespace \
               --namespace "test-namespace-$chart" \
               --timeout 1m \
               --atomic \
-              --dry-run; then
+              --dry-run \
+              --debug 2>&1)
+            DRYRUN_EXIT_CODE=$?
+            set -e  # Re-enable exit on error
+            
+            # Always show the output
+            echo "$DRYRUN_OUTPUT"
+            
+            # Save to log file
+            echo "$DRYRUN_OUTPUT" > "/tmp/helm-logs/$chart-dryrun.log"
+            
+            if [ $DRYRUN_EXIT_CODE -eq 0 ]; then
               echo "✅ Dry-run installation passed for $chart"
               DRYRUN_STATUS="✅ Dry-run installation passed"
             else
-              echo "❌ Dry-run installation failed for $chart"
+              echo "❌ Dry-run installation failed for $chart (exit code: $DRYRUN_EXIT_CODE)"
               DRYRUN_STATUS="❌ Dry-run installation failed"
               FAILED_CHARTS="$FAILED_CHARTS $chart"
               EXIT_CODE=1
             fi
+            echo "::endgroup::"
             
             # Add chart results
             if [[ "$FAILED_CHARTS" == *"$chart"* ]]; then
@@ -201,6 +237,7 @@ jobs:
               TEST_RESULTS="$TEST_RESULTS\n✅ **$chart**: $TEMPLATE_STATUS, $DRYRUN_STATUS"
             fi
             
+            echo "::endgroup::"
             echo ""
           done
           
@@ -220,6 +257,15 @@ jobs:
           
           exit $EXIT_CODE
         shell: /usr/bin/bash {0}
+
+      # Add this step after the helm tests to save logs as artifacts
+      - name: Upload detailed test logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: helm-test-logs-${{ github.run_number }}
+          path: /tmp/helm-logs/
+          retention-days: 30
 
       - name: Post PR comment with test results
         if: github.event_name == 'pull_request'
