@@ -261,7 +261,7 @@ jobs:
       # Add this step after the helm tests to save logs as artifacts
       - name: Upload detailed test logs
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: helm-test-logs-${{ github.run_number }}
           path: /tmp/helm-logs/
