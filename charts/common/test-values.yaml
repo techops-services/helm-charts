@@ -177,7 +177,7 @@ livenessProbe: {}
 readinessProbe: {}
 
 serviceAccount:
-  # Specifies whether a service account should be created
+  # Specifies whether a service account should be created.
   create: false
   # The name of the service account to use.
   name: ""
