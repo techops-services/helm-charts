@@ -267,9 +267,54 @@ jobs:
           path: /tmp/helm-logs/
           retention-days: 30
 
+      - name: Construct artifact URL
+        if: always()
+        id: artifact-url
+        run: |
+          # Wait for artifact to be processed
+          sleep 3
+          
+          # Get the artifact ID from GitHub API
+          echo "Fetching artifact information..."
+          ARTIFACT_RESPONSE=$(curl -s \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts")
+          
+          echo "API Response:"
+          echo "$ARTIFACT_RESPONSE" | jq '.'
+          
+          # Get our specific artifact
+          ARTIFACT_ID=$(echo "$ARTIFACT_RESPONSE" | jq -r --arg name "helm-test-logs-${{ github.run_number }}" '.artifacts[] | select(.name == $name) | .id')
+          
+          if [ "$ARTIFACT_ID" != "null" ] && [ -n "$ARTIFACT_ID" ]; then
+            ARTIFACT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/$ARTIFACT_ID"
+            echo "artifact-url=$ARTIFACT_URL" >> $GITHUB_OUTPUT
+            echo "artifact-available=true" >> $GITHUB_OUTPUT
+            echo "✅ Artifact URL: $ARTIFACT_URL"
+          else
+            echo "❌ Could not determine artifact ID"
+            echo "Available artifacts:"
+            echo "$ARTIFACT_RESPONSE" | jq -r '.artifacts[].name'
+            echo "artifact-available=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Post PR comment with test results
         if: github.event_name == 'pull_request'
         run: |
+          # Generate URLs
+          WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          # Check if we have artifact URL
+          if [ "${{ steps.artifact-url.outputs.artifact-available }}" = "true" ]; then
+            ARTIFACT_URL="${{ steps.artifact-url.outputs.artifact-url }}"
+            ARTIFACT_LINK="- 📁 [Download detailed test logs]($ARTIFACT_URL)"
+            ARTIFACT_NOTE="Click the download link above to get detailed logs for all helm operations."
+          else
+            ARTIFACT_LINK="- 📁 [View artifacts in workflow run]($WORKFLOW_URL) (look for \`helm-test-logs-${{ github.run_number }}\`)"
+            ARTIFACT_NOTE="Download the \`helm-test-logs-${{ github.run_number }}\` artifact from the workflow run page."
+          fi
+          
           # Prepare comment body
           if [ "${{ steps.helm-tests.outputs.exit-code }}" = "0" ]; then
             comment_body="## 🎉 Helm Chart Tests Passed!
@@ -279,9 +324,14 @@ jobs:
             ${{ steps.helm-tests.outputs.test-results }}
 
             **Summary:**
-            - ✅ Charts tested: $(echo '${{ needs.detect-changes.outputs.changed-charts }}' | tr ',' ' ')
+            - ✅ Charts tested: **$(echo '${{ needs.detect-changes.outputs.changed-charts }}' | tr ',' ' ')**
             - ✅ All template validations passed
             - ✅ All dry-run installations passed
+
+            **📋 Detailed Information:**
+            - 🔗 [View workflow run]($WORKFLOW_URL)
+            $ARTIFACT_LINK
+            - 💡 $ARTIFACT_NOTE
 
             The PR is ready for review! 🚀"
           else
@@ -295,6 +345,12 @@ jobs:
             - 📊 Charts tested: $(echo '${{ needs.detect-changes.outputs.changed-charts }}' | tr ',' ' ')
             - ❌ Failed charts:${{ steps.helm-tests.outputs.failed-charts }}
             - ✅ Successful charts:${{ steps.helm-tests.outputs.success-charts }}
+
+            **🔍 Debugging Information:**
+            - 🔗 [View workflow run]($WORKFLOW_URL)
+            $ARTIFACT_LINK
+            - 💡 $ARTIFACT_NOTE
+            - 🔍 Check the \`Validate and test changed charts\` step for detailed error output
 
             Please fix the issues before merging. 🔧"
           fi

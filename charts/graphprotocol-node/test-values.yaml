@@ -49,7 +49,7 @@ ingressIndex:
   enabled: true
   ingressClassName: traefik
   tls:
-    enabled: true
+    enabled: false
     issuerName: cloudflare
   hosts:
   - status-host
@@ -59,7 +59,7 @@ ingressIndex:
 logLevel: info
 
 monitoring:
-  enabled: true
+  enabled: false
   labels: prometheus
   serviceMonitor:
     metricRelabelings:
