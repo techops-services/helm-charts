@@ -35,7 +35,7 @@ polymesh:
 
 operatorKeys:
   requireSecret: true
-  # existingSecret: <string>
+  existingSecret: super-secret
 
 nodeKey:
   filename: node_key.ed25519
@@ -80,7 +80,7 @@ service:
     enabled: true
     type: ClusterIP
     port: 9615
-    servicemonitor: true
+    servicemonitor: false
   jsonrpc:
     enabled: false
     type: ClusterIP
