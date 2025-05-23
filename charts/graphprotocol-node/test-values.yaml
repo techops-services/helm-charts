@@ -52,7 +52,7 @@ ingressIndex:
     enabled: true
     issuerName: cloudflare
   hosts:
-  - ${status_hostname}
+  - status-host
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: 'true'
 

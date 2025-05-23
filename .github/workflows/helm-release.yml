@@ -165,7 +165,7 @@ jobs:
             
             # Test 1: Helm template validation
             echo "Running Helm template validation for $chart..."
-            if helm template "$chart" "charts/$chart" -f "$VALUES_FILE" > /dev/null 2>&1; then
+            if helm template "$chart" "charts/$chart" -f "$VALUES_FILE"; then
               echo "✅ Template validation passed for $chart"
               TEMPLATE_STATUS="✅ Template validation passed"
             else
@@ -183,7 +183,7 @@ jobs:
               --namespace "test-namespace-$chart" \
               --timeout 1m \
               --atomic \
-              --dry-run > /dev/null 2>&1; then
+              --dry-run; then
               echo "✅ Dry-run installation passed for $chart"
               DRYRUN_STATUS="✅ Dry-run installation passed"
             else
@@ -219,6 +219,7 @@ jobs:
           fi
           
           exit $EXIT_CODE
+        shell: /usr/bin/bash {0}
 
       - name: Post PR comment with test results
         if: github.event_name == 'pull_request'
