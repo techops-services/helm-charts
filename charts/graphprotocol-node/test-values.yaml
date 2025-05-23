@@ -1,0 +1,75 @@
+role: index-node
+
+image:
+  repository: graphprotocol/graph-node
+  pullPolicy: IfNotPresent
+  tag: "v0.38.0"
+
+config:
+  ipfs: "ipfs.example.com"
+  chains:
+    mainnet:
+      providers:
+      - label: mainnet
+        url: "mainnet.example.com"
+        features: [ archive, traces ]
+    arbitrum:
+      providers:
+      - label: arbitrum
+        url: "arbitrum.example.com"
+        features: [ archive, traces ]
+    base:
+      providers:
+      - label: base
+        url: "base.example.com"
+        features: [ archive, traces ]
+    base-tenderly:
+      providers:
+      - label: base-tenderly
+        url: "base-tenderly.example.com"
+        features: [ archive, traces ]
+
+postgres:
+  db: "db_name"
+  host: "rds_host"
+  user: "rds_username"
+  password:
+    fromSecret:
+      name: "db_credentials_secret"
+      key: password
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 1Gi
+  limits:
+    memory: 2Gi
+
+ingressIndex:
+  enabled: true
+  ingressClassName: traefik
+  tls:
+    enabled: false
+    issuerName: cloudflare
+  hosts:
+  - status-host
+  annotations:
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: 'true'
+
+logLevel: info
+
+monitoring:
+  enabled: false
+  labels: prometheus
+  serviceMonitor:
+    metricRelabelings:
+      - action: drop
+        regex: deployment_handler_execution_time_bucket
+        sourceLabels: [__name__]
+
+podAnnotations:
+  reloader.stakater.com/auto: 'true'
+
+env:
+  EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE: synced
+  POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
