@@ -3,13 +3,106 @@ name: Release Charts
 on:
   push:
     branches:
+      - TECH-2871-improve-cicd-chartss
+  pull_request:
+    branches:
       - main
+    types:
+      - opened
+      - synchronize
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  PR_NUMBER: ${{ github.event.number }}
 
 jobs:
-  release:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed-charts: ${{ steps.changed-charts.outputs.changed-charts }}
+      has-changes: ${{ steps.changed-charts.outputs.has-changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed charts
+        id: changed-charts
+        run: |
+          # Get list of all charts by scanning the charts directory
+          ALL_CHARTS=$(find charts/ -maxdepth 1 -type d -not -path charts/ | sed 's|charts/||' | sort)
+          echo "Available charts:"
+          echo "$ALL_CHARTS"
+          
+          # Get list of changed files
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check which charts have changes
+          CHANGED_CHARTS=""
+          for chart in $ALL_CHARTS; do
+            if echo "$CHANGED_FILES" | grep -q "^charts/$chart/"; then
+              if [ -z "$CHANGED_CHARTS" ]; then
+                CHANGED_CHARTS="$chart"
+              else
+                CHANGED_CHARTS="$CHANGED_CHARTS,$chart"
+              fi
+            fi
+          done
+          
+          echo "Changed charts: $CHANGED_CHARTS"
+          echo "changed-charts=$CHANGED_CHARTS" >> $GITHUB_OUTPUT
+          
+          # Set flag if any charts changed
+          if [ -n "$CHANGED_CHARTS" ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+
+  no-changes:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.has-changes == 'false'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post PR comment - No changes
+        if: github.event_name == 'pull_request'
+        run: |
+          comment_body="## ℹ️ No Helm Chart Changes Detected
+
+          No changes were detected in any Helm charts for this PR.
+
+          **Checked directories:**
+          - \`charts/\`
+
+          The workflow completed successfully with no tests needed. ✅"
+
+          # Post comment to PR using curl
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            -d "{\"body\": $(echo "$comment_body" | jq -Rs .)}"
+
+  test-charts:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.has-changes == 'true'
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -21,10 +114,388 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Set up Minikube
+        uses: medyagh/setup-minikube@master
+        with:
+          minikube-version: 'latest'
+          kubernetes-version: 'stable'
+          driver: docker
+
+      - name: kubectl
+        run: kubectl get pods -A
+
       - name: Install Helm
         uses: azure/setup-helm@v3
 
+      - name: Wait for Minikube to be ready
+        run: |
+          minikube status
+          kubectl get nodes
+          kubectl wait --for=condition=Ready node/minikube --timeout=3m
+
+      - name: Validate and test changed charts
+        id: helm-tests
+        continue-on-error: true
+        run: |
+          # Create log directory
+          mkdir -p /tmp/helm-logs
+          
+          # Initialize results tracking
+          TEST_RESULTS_TABLE=""
+          FAILED_CHARTS=""
+          SUCCESS_CHARTS=""
+          EXIT_CODE=0
+          
+          # Convert comma-separated list to array
+          IFS=',' read -ra CHARTS <<< "${{ needs.detect-changes.outputs.changed-charts }}"
+          
+          # Initialize table header
+          TEST_RESULTS_TABLE="| Chart | Template Validation | Dry-run Installation | Overall Status |\n|-------|-------------------|---------------------|----------------|\n"
+          
+          for chart in "${CHARTS[@]}"; do
+            echo "::group::Testing chart: $chart"
+            echo "=================================="
+            echo "Testing chart: $chart"
+            echo "=================================="
+            
+            # Use common test-values.yaml file for all charts
+            VALUES_FILE="charts/$chart/test-values.yaml"
+            
+            # Check if values file exists
+            if [ ! -f "$VALUES_FILE" ]; then
+              echo "::error::Values file not found: $VALUES_FILE"
+              FAILED_CHARTS="$FAILED_CHARTS $chart"
+              TEST_RESULTS_TABLE="$TEST_RESULTS_TABLE| **$chart** | ❌ Values file not found | - | ❌ Failed |\n"
+              EXIT_CODE=1
+              echo "::endgroup::"
+              continue
+            fi
+            
+            # Test 1: Helm template validation
+            echo "::group::Helm template validation for $chart"
+            echo "Running Helm template validation for $chart..."
+            
+            # Run helm template and capture both output and exit code
+            set +e  # Don't exit on error
+            TEMPLATE_OUTPUT=$(helm template "$chart" "charts/$chart" -f "$VALUES_FILE" 2>&1)
+            TEMPLATE_EXIT_CODE=$?
+            set -e  # Re-enable exit on error
+            
+            # Always show the output
+            echo "$TEMPLATE_OUTPUT"
+            
+            # Save to log file
+            echo "$TEMPLATE_OUTPUT" > "/tmp/helm-logs/$chart-template.log"
+            
+            if [ $TEMPLATE_EXIT_CODE -eq 0 ]; then
+              echo "✅ Template validation passed for $chart"
+              TEMPLATE_STATUS="✅ Passed"
+            else
+              echo "❌ Template validation failed for $chart (exit code: $TEMPLATE_EXIT_CODE)"
+              TEMPLATE_STATUS="❌ Failed"
+              FAILED_CHARTS="$FAILED_CHARTS $chart"
+              EXIT_CODE=1
+            fi
+            echo "::endgroup::"
+            
+            # Test 2: Dry-run installation
+            echo "::group::Dry-run installation for $chart"
+            echo "Performing dry-run Helm installation for $chart..."
+            
+            # Run helm upgrade with detailed output
+            set +e  # Don't exit on error
+            DRYRUN_OUTPUT=$(helm upgrade --install "$chart" "charts/$chart" \
+              -f "$VALUES_FILE" \
+              --create-namespace \
+              --namespace "test-namespace-$chart" \
+              --timeout 1m \
+              --atomic \
+              --dry-run \
+              --debug 2>&1)
+            DRYRUN_EXIT_CODE=$?
+            set -e  # Re-enable exit on error
+            
+            # Always show the output
+            echo "$DRYRUN_OUTPUT"
+            
+            # Save to log file
+            echo "$DRYRUN_OUTPUT" > "/tmp/helm-logs/$chart-dryrun.log"
+            
+            if [ $DRYRUN_EXIT_CODE -eq 0 ]; then
+              echo "✅ Dry-run installation passed for $chart"
+              DRYRUN_STATUS="✅ Passed"
+            else
+              echo "❌ Dry-run installation failed for $chart (exit code: $DRYRUN_EXIT_CODE)"
+              DRYRUN_STATUS="❌ Failed"
+              FAILED_CHARTS="$FAILED_CHARTS $chart"
+              EXIT_CODE=1
+            fi
+            echo "::endgroup::"
+            
+            # Determine overall status
+            if [[ "$FAILED_CHARTS" == *"$chart"* ]]; then
+              OVERALL_STATUS="❌ Failed"
+            else
+              SUCCESS_CHARTS="$SUCCESS_CHARTS $chart"
+              OVERALL_STATUS="✅ Passed"
+            fi
+            
+            # Add row to table
+            TEST_RESULTS_TABLE="$TEST_RESULTS_TABLE| **$chart** | $TEMPLATE_STATUS | $DRYRUN_STATUS | $OVERALL_STATUS |\n"
+            
+            echo "::endgroup::"
+            echo ""
+          done
+          
+          # Clean up chart lists (remove leading/trailing spaces)
+          FAILED_CHARTS=$(echo "$FAILED_CHARTS" | xargs)
+          SUCCESS_CHARTS=$(echo "$SUCCESS_CHARTS" | xargs)
+          
+          # Convert spaces to commas for better formatting
+          if [ -n "$FAILED_CHARTS" ]; then
+            FAILED_CHARTS_FORMATTED=$(echo "$FAILED_CHARTS" | tr ' ' ',')
+          else
+            FAILED_CHARTS_FORMATTED=""
+          fi
+          
+          if [ -n "$SUCCESS_CHARTS" ]; then
+            SUCCESS_CHARTS_FORMATTED=$(echo "$SUCCESS_CHARTS" | tr ' ' ',')
+          else
+            SUCCESS_CHARTS_FORMATTED=""
+          fi
+          
+          # Set outputs for PR comment
+          echo "test-results-table<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$TEST_RESULTS_TABLE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "failed-charts=$FAILED_CHARTS_FORMATTED" >> $GITHUB_OUTPUT
+          echo "success-charts=$SUCCESS_CHARTS_FORMATTED" >> $GITHUB_OUTPUT
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "🎉 All changed charts passed validation!"
+          else
+            echo "💥 Some charts failed validation!"
+          fi
+          
+          exit $EXIT_CODE
+        shell: /usr/bin/bash {0}
+
+      # Add this step after the helm tests to save logs as artifacts
+      - name: Upload detailed test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-test-logs-${{ github.run_number }}
+          path: /tmp/helm-logs/
+          retention-days: 30
+
+      - name: Construct artifact URL
+        if: always()
+        id: artifact-url
+        run: |
+          # Wait for artifact to be processed
+          sleep 3
+
+          # Get the artifact ID from GitHub API
+          echo "Fetching artifact information..."
+          ARTIFACT_RESPONSE=$(curl -s \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts")
+
+          echo "API Response:"
+          echo "$ARTIFACT_RESPONSE" | jq '.'
+
+          # Get our specific artifact
+          ARTIFACT_ID=$(echo "$ARTIFACT_RESPONSE" | jq -r --arg name "helm-test-logs-${{ github.run_number }}" '.artifacts[] | select(.name == $name) | .id')
+
+          if [ "$ARTIFACT_ID" != "null" ] && [ -n "$ARTIFACT_ID" ]; then
+            ARTIFACT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/$ARTIFACT_ID"
+            echo "artifact-url=$ARTIFACT_URL" >> $GITHUB_OUTPUT
+            echo "artifact-available=true" >> $GITHUB_OUTPUT
+            echo "✅ Artifact URL: $ARTIFACT_URL"
+          else
+            echo "❌ Could not determine artifact ID"
+            echo "Available artifacts:"
+            echo "$ARTIFACT_RESPONSE" | jq -r '.artifacts[].name'
+            echo "artifact-available=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post PR comment with test results
+        if: github.event_name == 'pull_request'
+        run: |
+          # Generate URLs
+          WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Check if we have artifact URL
+          if [ "${{ steps.artifact-url.outputs.artifact-available }}" = "true" ]; then
+            ARTIFACT_URL="${{ steps.artifact-url.outputs.artifact-url }}"
+            ARTIFACT_LINK="- 📁 [Download detailed test logs]($ARTIFACT_URL)"
+            ARTIFACT_NOTE="Click the download link above to get detailed logs for all helm operations."
+          else
+            ARTIFACT_LINK="- 📁 [View artifacts in workflow run]($WORKFLOW_URL) (look for \`helm-test-logs-${{ github.run_number }}\`)"
+            ARTIFACT_NOTE="Download the \`helm-test-logs-${{ github.run_number }}\` artifact from the workflow run page."
+          fi
+
+          # Convert comma-separated charts back to readable format for display
+          TESTED_CHARTS=$(echo '${{ needs.detect-changes.outputs.changed-charts }}' | sed 's/,/, /g')
+
+          # Prepare comment body
+          if [ "${{ steps.helm-tests.outputs.exit-code }}" = "0" ]; then
+            comment_body="## 🎉 Helm Chart Tests Passed!
+
+            All modified charts have been successfully validated:
+
+            ${{ steps.helm-tests.outputs.test-results-table }}
+
+            **Summary:**
+            - ✅ Charts tested: **$TESTED_CHARTS**
+            - ✅ All template validations passed
+            - ✅ All dry-run installations passed
+
+            **📋 Detailed Information:**
+            - 🔗 [View workflow run]($WORKFLOW_URL)
+            $ARTIFACT_LINK
+            - 💡 $ARTIFACT_NOTE
+
+            The PR is ready for review! 🚀"
+          else
+            comment_body="## ❌ Helm Chart Tests Failed
+
+            Some charts failed validation:
+
+            ${{ steps.helm-tests.outputs.test-results-table }}
+
+            **Summary:**
+            - 📊 Charts tested: **$TESTED_CHARTS**
+            - ❌ Failed charts: **${{ steps.helm-tests.outputs.failed-charts }}**
+            - ✅ Successful charts: **${{ steps.helm-tests.outputs.success-charts }}**
+
+            **🔍 Debugging Information:**
+            - 🔗 [View workflow run]($WORKFLOW_URL)
+            $ARTIFACT_LINK
+            - 💡 $ARTIFACT_NOTE
+            - 🔍 Check the \`Validate and test changed charts\` step for detailed error output
+
+            Please fix the issues before merging. 🔧"
+          fi
+          
+          # Post comment to PR using curl
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            -d "{\"body\": $(echo "$comment_body" | jq -Rs .)}"
+
+
+      - name: Validate chart version increments
+        if: steps.helm-tests.outputs.exit-code == '0'
+        id: version-check
+        run: |
+          # Convert comma-separated list to array
+          IFS=',' read -ra CHARTS <<< "${{ needs.detect-changes.outputs.changed-charts }}"
+
+          VERSION_ERRORS=""
+          EXIT_CODE=0
+
+          echo "Checking version increments for changed charts..."
+          echo "============================================="
+
+          for chart in "${CHARTS[@]}"; do
+            echo "::group::Checking version for chart: $chart"
+            echo "Checking version increment for chart: $chart"
+
+            # Get current version from Chart.yaml
+            CURRENT_VERSION=$(grep '^version:' "charts/$chart/Chart.yaml" | awk '{print $2}' | tr -d '"')
+            echo "Current version in Chart.yaml: $CURRENT_VERSION"
+
+            # Get the latest tag for this chart from git
+            LATEST_TAG=$(git tag -l "${chart}-*" --sort=-version:refname | head -n1)
+
+            if [ -n "$LATEST_TAG" ]; then
+              # Extract version from tag (format: chartname-version)
+              LATEST_VERSION=$(echo "$LATEST_TAG" | sed "s/^${chart}-//")
+              echo "Latest git tag version: $LATEST_VERSION"
+
+              # Compare versions using sort -V (version sort)
+              if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+                echo "❌ Version not incremented for chart '$chart'"
+                echo "   Current: $CURRENT_VERSION"
+                echo "   Latest tag: $LATEST_VERSION"
+                VERSION_ERRORS="$VERSION_ERRORS\n❌ **$chart**: Version not incremented (current: $CURRENT_VERSION, latest tag: $LATEST_VERSION)"
+                EXIT_CODE=1
+              else
+                # Check if current version is greater than latest version
+                # Sort the versions and check if current comes after latest
+                HIGHER_VERSION=$(printf '%s\n%s\n' "$LATEST_VERSION" "$CURRENT_VERSION" | sort -V | tail -n1)
+                if [ "$HIGHER_VERSION" = "$CURRENT_VERSION" ] && [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+                  echo "✅ Version properly incremented for chart '$chart' ($LATEST_VERSION → $CURRENT_VERSION)"
+                else
+                  echo "❌ Version decreased or not properly incremented for chart '$chart'"
+                  echo "   Current: $CURRENT_VERSION"
+                  echo "   Latest tag: $LATEST_VERSION"
+                  VERSION_ERRORS="$VERSION_ERRORS\n❌ **$chart**: Version not properly incremented (current: $CURRENT_VERSION, latest tag: $LATEST_VERSION)"
+                  EXIT_CODE=1
+                fi
+              fi
+            else
+              echo "ℹ️ No previous tags found for chart '$chart' - treating as new chart"
+              echo "✅ New chart '$chart' with version: $CURRENT_VERSION"
+            fi
+
+            echo "::endgroup::"
+          done
+
+          # Set outputs
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ All chart versions properly incremented!"
+          else
+            echo "❌ Some charts have version increment issues!"
+            echo "version-errors<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$VERSION_ERRORS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+          echo "version-check-exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $EXIT_CODE
+
+      - name: Post version validation error comment
+        if: failure() && steps.version-check.outputs.version-check-exit-code == '1' && github.event_name == 'pull_request'
+        run: |
+          comment_body="## ❌ Chart Version Validation Failed
+
+          The following charts have version increment issues:
+
+          ${{ steps.version-check.outputs.version-errors }}
+
+          **❗ Required Action:**
+          Please increment the \`version\` field in the \`Chart.yaml\` file for each changed chart. The version must be higher than the latest git tag.
+
+          **How to fix:**
+          1. Check the latest version: \`git tag -l \"chartname-*\" --sort=-version:refname | head -n1\`
+          2. Update \`charts/[chart-name]/Chart.yaml\` with a higher version number
+          3. Follow semantic versioning (e.g., 1.0.0 → 1.0.1 for patches, 1.0.1 → 1.1.0 for features)
+
+          **Example:**
+          \`\`\`yaml
+          # charts/my-chart/Chart.yaml
+          version: 1.0.1  # increment this
+          \`\`\`
+
+          Please fix the version issues and push the changes. 🔧"
+
+          # Post comment to PR using curl
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            -d "{\"body\": $(echo "$comment_body" | jq -Rs .)}"
+
       - name: Run chart-releaser
+        if: steps.helm-tests.outputs.exit-code == '0' && steps.version-check.outputs.version-check-exit-code == '0'
         uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: charts
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
