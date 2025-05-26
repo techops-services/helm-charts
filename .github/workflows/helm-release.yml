@@ -12,7 +12,7 @@ on:
       - synchronize
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 env:
@@ -296,20 +296,20 @@ jobs:
         run: |
           # Wait for artifact to be processed
           sleep 3
-          
+
           # Get the artifact ID from GitHub API
           echo "Fetching artifact information..."
           ARTIFACT_RESPONSE=$(curl -s \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts")
-          
+
           echo "API Response:"
           echo "$ARTIFACT_RESPONSE" | jq '.'
-          
+
           # Get our specific artifact
           ARTIFACT_ID=$(echo "$ARTIFACT_RESPONSE" | jq -r --arg name "helm-test-logs-${{ github.run_number }}" '.artifacts[] | select(.name == $name) | .id')
-          
+
           if [ "$ARTIFACT_ID" != "null" ] && [ -n "$ARTIFACT_ID" ]; then
             ARTIFACT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/$ARTIFACT_ID"
             echo "artifact-url=$ARTIFACT_URL" >> $GITHUB_OUTPUT
@@ -327,7 +327,7 @@ jobs:
         run: |
           # Generate URLs
           WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          
+
           # Check if we have artifact URL
           if [ "${{ steps.artifact-url.outputs.artifact-available }}" = "true" ]; then
             ARTIFACT_URL="${{ steps.artifact-url.outputs.artifact-url }}"
@@ -337,10 +337,10 @@ jobs:
             ARTIFACT_LINK="- 📁 [View artifacts in workflow run]($WORKFLOW_URL) (look for \`helm-test-logs-${{ github.run_number }}\`)"
             ARTIFACT_NOTE="Download the \`helm-test-logs-${{ github.run_number }}\` artifact from the workflow run page."
           fi
-          
+
           # Convert comma-separated charts back to readable format for display
           TESTED_CHARTS=$(echo '${{ needs.detect-changes.outputs.changed-charts }}' | sed 's/,/, /g')
-          
+
           # Prepare comment body
           if [ "${{ steps.helm-tests.outputs.exit-code }}" = "0" ]; then
             comment_body="## 🎉 Helm Chart Tests Passed!
@@ -350,7 +350,7 @@ jobs:
             ${{ steps.helm-tests.outputs.test-results-table }}
 
             **Summary:**
-            - 📊 Charts tested: **$TESTED_CHARTS**
+            - ✅ Charts tested: **$TESTED_CHARTS**
             - ✅ All template validations passed
             - ✅ All dry-run installations passed
 
@@ -388,8 +388,109 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
             -d "{\"body\": $(echo "$comment_body" | jq -Rs .)}"
 
-      - name: Run chart-releaser
+
+      - name: Validate chart version increments
         if: steps.helm-tests.outputs.exit-code == '0'
+        id: version-check
+        run: |
+          # Convert comma-separated list to array
+          IFS=',' read -ra CHARTS <<< "${{ needs.detect-changes.outputs.changed-charts }}"
+
+          VERSION_ERRORS=""
+          EXIT_CODE=0
+
+          echo "Checking version increments for changed charts..."
+          echo "============================================="
+
+          for chart in "${CHARTS[@]}"; do
+            echo "::group::Checking version for chart: $chart"
+            echo "Checking version increment for chart: $chart"
+
+            # Get current version from Chart.yaml
+            CURRENT_VERSION=$(grep '^version:' "charts/$chart/Chart.yaml" | awk '{print $2}' | tr -d '"')
+            echo "Current version in Chart.yaml: $CURRENT_VERSION"
+
+            # Get the latest tag for this chart from git
+            LATEST_TAG=$(git tag -l "${chart}-*" --sort=-version:refname | head -n1)
+
+            if [ -n "$LATEST_TAG" ]; then
+              # Extract version from tag (format: chartname-version)
+              LATEST_VERSION=$(echo "$LATEST_TAG" | sed "s/^${chart}-//")
+              echo "Latest git tag version: $LATEST_VERSION"
+
+              # Compare versions using sort -V (version sort)
+              if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+                echo "❌ Version not incremented for chart '$chart'"
+                echo "   Current: $CURRENT_VERSION"
+                echo "   Latest tag: $LATEST_VERSION"
+                VERSION_ERRORS="$VERSION_ERRORS\n❌ **$chart**: Version not incremented (current: $CURRENT_VERSION, latest tag: $LATEST_VERSION)"
+                EXIT_CODE=1
+              elif printf '%s\n%s\n' "$LATEST_VERSION" "$CURRENT_VERSION" | sort -V -C; then
+                echo "❌ Version decreased or not properly incremented for chart '$chart'"
+                echo "   Current: $CURRENT_VERSION"
+                echo "   Latest tag: $LATEST_VERSION"
+                VERSION_ERRORS="$VERSION_ERRORS\n❌ **$chart**: Version not properly incremented (current: $CURRENT_VERSION, latest tag: $LATEST_VERSION)"
+                EXIT_CODE=1
+              else
+                echo "✅ Version properly incremented for chart '$chart' ($LATEST_VERSION → $CURRENT_VERSION)"
+              fi
+            else
+              echo "ℹ️ No previous tags found for chart '$chart' - treating as new chart"
+              echo "✅ New chart '$chart' with version: $CURRENT_VERSION"
+            fi
+
+            echo "::endgroup::"
+          done
+
+          # Set outputs
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ All chart versions properly incremented!"
+          else
+            echo "❌ Some charts have version increment issues!"
+            echo "version-errors<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$VERSION_ERRORS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+          echo "version-check-exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $EXIT_CODE
+
+      - name: Post version validation error comment
+        if: failure() && steps.version-check.outputs.version-check-exit-code == '1' && github.event_name == 'pull_request'
+        run: |
+          comment_body="## ❌ Chart Version Validation Failed
+
+          The following charts have version increment issues:
+
+          ${{ steps.version-check.outputs.version-errors }}
+
+          **❗ Required Action:**
+          Please increment the \`version\` field in the \`Chart.yaml\` file for each changed chart. The version must be higher than the latest git tag.
+
+          **How to fix:**
+          1. Check the latest version: \`git tag -l \"chartname-*\" --sort=-version:refname | head -n1\`
+          2. Update \`charts/[chart-name]/Chart.yaml\` with a higher version number
+          3. Follow semantic versioning (e.g., 1.0.0 → 1.0.1 for patches, 1.0.1 → 1.1.0 for features)
+
+          **Example:**
+          \`\`\`yaml
+          # charts/my-chart/Chart.yaml
+          version: 1.0.1  # increment this
+          \`\`\`
+
+          Please fix the version issues and push the changes. 🔧"
+
+          # Post comment to PR using curl
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            -d "{\"body\": $(echo "$comment_body" | jq -Rs .)}"
+
+      - name: Run chart-releaser
+        if: steps.helm-tests.outputs.exit-code == '0' && steps.version-check.outputs.version-check-exit-code == '0'
         uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: charts
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
