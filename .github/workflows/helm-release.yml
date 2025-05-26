@@ -425,14 +425,19 @@ jobs:
                 echo "   Latest tag: $LATEST_VERSION"
                 VERSION_ERRORS="$VERSION_ERRORS\n❌ **$chart**: Version not incremented (current: $CURRENT_VERSION, latest tag: $LATEST_VERSION)"
                 EXIT_CODE=1
-              elif printf '%s\n%s\n' "$LATEST_VERSION" "$CURRENT_VERSION" | sort -V -C; then
-                echo "❌ Version decreased or not properly incremented for chart '$chart'"
-                echo "   Current: $CURRENT_VERSION"
-                echo "   Latest tag: $LATEST_VERSION"
-                VERSION_ERRORS="$VERSION_ERRORS\n❌ **$chart**: Version not properly incremented (current: $CURRENT_VERSION, latest tag: $LATEST_VERSION)"
-                EXIT_CODE=1
               else
-                echo "✅ Version properly incremented for chart '$chart' ($LATEST_VERSION → $CURRENT_VERSION)"
+                # Check if current version is greater than latest version
+                # Sort the versions and check if current comes after latest
+                HIGHER_VERSION=$(printf '%s\n%s\n' "$LATEST_VERSION" "$CURRENT_VERSION" | sort -V | tail -n1)
+                if [ "$HIGHER_VERSION" = "$CURRENT_VERSION" ] && [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+                  echo "✅ Version properly incremented for chart '$chart' ($LATEST_VERSION → $CURRENT_VERSION)"
+                else
+                  echo "❌ Version decreased or not properly incremented for chart '$chart'"
+                  echo "   Current: $CURRENT_VERSION"
+                  echo "   Latest tag: $LATEST_VERSION"
+                  VERSION_ERRORS="$VERSION_ERRORS\n❌ **$chart**: Version not properly incremented (current: $CURRENT_VERSION, latest tag: $LATEST_VERSION)"
+                  EXIT_CODE=1
+                fi
               fi
             else
               echo "ℹ️ No previous tags found for chart '$chart' - treating as new chart"
