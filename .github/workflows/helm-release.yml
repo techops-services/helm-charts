@@ -387,11 +387,9 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
             -d "{\"body\": $(echo "$comment_body" | jq -Rs .)}"
-          
-          # Exit with the original exit code
-          exit ${{ steps.helm-tests.outputs.exit-code }}
 
-      # - name: Run chart-releaser
-      #   uses: helm/chart-releaser-action@v1.6.0
-      #   env:
-      #     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Run chart-releaser
+        if: steps.helm-tests.outputs.exit-code == '0'
+        uses: helm/chart-releaser-action@v1.6.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
