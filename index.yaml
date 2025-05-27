@@ -3,6 +3,17 @@ entries:
   common:
   - apiVersion: v2
     appVersion: 0.0.37
+    created: "2025-05-27T21:17:43.326349346Z"
+    description: A Helm chart for Kubernetes
+    digest: 2f6e5280ec53e76e16c5d32cfc3055a4428a1e05ebdac385ebf242d32c16788c
+    icon: https://cncf-branding.netlify.app/img/projects/helm/horizontal/color/helm-horizontal-color.png
+    name: common
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/common-0.1.4/common-0.1.4.tgz
+    version: 0.1.4
+  - apiVersion: v2
+    appVersion: 0.0.37
     created: "2025-05-26T10:56:59.841876227Z"
     description: A Helm chart for Kubernetes
     digest: 8a3854d6339d0aff6986ec85e99a2205764a61eb87d82ccf0d4875e872223111
@@ -453,6 +464,27 @@ entries:
     - https://github.com/techops-services/helm-charts/releases/download/common-0.0.1/common-0.0.1.tgz
     version: 0.0.1
   graphprotocol-node:
+  - apiVersion: v2
+    appVersion: v0.38.0
+    created: "2025-05-27T21:17:43.465577987Z"
+    description: A Helm chart for Graph Protocol Nodes
+    digest: ffb40bef9730e3063653ae24d26528d70000d8f8ae7ccee9bbf2c1bf9684773d
+    home: https://thegraph.com/
+    keywords:
+    - graphprotocol
+    - ethereum
+    maintainers:
+    - email: dm3ch@dm3ch.net
+      name: dm3ch (original author)
+    - email: engineering@techops.services
+      name: TechOps Services
+    name: graphprotocol-node
+    sources:
+    - https://github.com/graphprotocol/graph-node
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/graphprotocol-node-0.3.2/graphprotocol-node-0.3.2.tgz
+    version: 0.3.2
   - apiVersion: v2
     appVersion: v0.38.0
     created: "2025-05-26T10:57:00.013829733Z"
@@ -1015,6 +1047,16 @@ entries:
   polymesh:
   - apiVersion: v2
     appVersion: 4.1.1
+    created: "2025-05-27T21:17:43.612526659Z"
+    description: A Helm chart for running Polymesh on Kubernetes
+    digest: cda9c0c4c28c8e9f91e5ff6bba0d61765a386fa080610935e596dd97d2254791
+    name: polymesh
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/polymesh-1.0.2/polymesh-1.0.2.tgz
+    version: 1.0.2
+  - apiVersion: v2
+    appVersion: 4.1.1
     created: "2025-05-26T10:57:00.130345725Z"
     description: A Helm chart for running Polymesh on Kubernetes
     digest: 994d57efe9da664f19677a44934c6c3a8c7f5844d67a43cff73cfcd63453d8f6
@@ -1033,4 +1075,4 @@ entries:
     urls:
     - https://github.com/techops-services/helm-charts/releases/download/polymesh-1.0.0/polymesh-1.0.0.tgz
     version: 1.0.0
-generated: "2025-05-26T10:57:00.131242419Z"
+generated: "2025-05-27T21:17:43.61296115Z"
