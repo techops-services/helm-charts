@@ -1,9 +1,6 @@
 name: Release Charts
 
 on:
-  push:
-    branches:
-      - TECH-2871-improve-cicd-chartss
   pull_request:
     branches:
       - main
