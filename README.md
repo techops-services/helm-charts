@@ -1,7 +1,5 @@
 # Helm Charts Repository
 
-Repository to use: "https://techops-services.github.io/helm-charts"
-
 This repository contains Helm charts that are automatically released to GitHub Pages using GitHub Actions. The charts are tested, validated, and published automatically when changes are made via pull requests.
 
 ## 📑 Table of Contents
@@ -20,7 +18,6 @@ This repository contains Helm charts that are automatically released to GitHub P
 - [💡 Best Practices](#-best-practices)
 - [🔍 Pipeline Configuration](#-pipeline-configuration)
 
-
 ## 📋 Repository Purpose
 
 This repository serves as a **Helm chart registry** that:
@@ -34,23 +31,28 @@ The published charts are available at: `https://[your-username].github.io/[repos
 
 ## 🔄 Automated Pipeline Overview
 
-The GitHub Actions pipeline (`Release Charts`) automatically triggers on pull requests to the `main` branch and performs the following steps:
+The GitHub Actions pipeline (`Release Charts`) has two main triggers and workflows:
 
-### 1. **Change Detection**
-- Scans the `charts/` directory to identify which charts have been modified
-- Only tests and processes charts that have actual changes
-- Skips pipeline execution if no chart changes are detected
+### 📋 Pull Request Testing (triggers on PR to main)
+When you create or update a pull request:
 
-### 2. **Chart Validation & Testing**
-For each modified chart, the pipeline performs:
-- **Template Validation**: Runs `helm template` to ensure YAML templates are syntactically correct
-- **Dry-run Installation**: Performs `helm install --dry-run` to validate Kubernetes resource generation
-- **Version Increment Check**: Ensures chart versions are properly incremented compared to existing releases
+1. **Change Detection** - Scans the `charts/` directory to identify modified charts
+2. **Chart Validation & Testing** - For each modified chart:
+   - **Template Validation**: Runs `helm template` to ensure YAML templates are syntactically correct
+   - **Dry-run Installation**: Performs `helm install --dry-run` to validate Kubernetes resource generation
+3. **Results Reporting** - Posts detailed test results as PR comments with downloadable logs
 
-### 3. **Automated Release**
-- Creates GitHub releases for successfully validated charts
-- Generates and updates the Helm repository index
-- Publishes charts to GitHub Pages for public consumption
+### 🚀 Release Process (triggers on merge to main)
+When a PR is merged to the main branch:
+
+1. **Change Detection** - Re-identifies which charts were changed in the merge
+2. **Version Validation** - Ensures chart versions are properly incremented compared to existing releases
+3. **Automated Release** - If version validation passes:
+   - Creates GitHub releases for validated charts
+   - Generates and updates the Helm repository index
+   - Publishes charts to GitHub Pages for public consumption
+
+**Important:** The release process requires proper version increments. If version validation fails after merge, a GitHub issue will be created to track the problem.
 
 ## 📝 Test Values Requirement
 
@@ -123,7 +125,9 @@ The pipeline posts detailed results as PR comments. Here's how to interpret them
 ![alt text](img/success.png)
 ### ❌ Failure Example  
 ![alt text](img/failure.png)
+
 ### Test Results Table
+
 The pipeline generates a results table showing:
 
 | Chart | Template Validation | Dry-run Installation | Overall Status |
@@ -201,6 +205,10 @@ The pipeline generates a results table showing:
 **Symptoms:**
 - ❌ Chart Version Validation Failed
 - Error about version not being incremented
+
+**When this happens:**
+- **On Pull Requests**: You'll get a PR comment explaining the issue
+- **On Main Branch** (after merge): A GitHub issue will be automatically created to track the problem
 
 **Solution:**
 1. Check the current version in your `Chart.yaml`:
@@ -283,13 +291,17 @@ vim charts/my-chart/Chart.yaml
 ### 5. Create Pull Request
 - Push changes to a feature branch
 - Create PR to `main` branch
-- Wait for automated tests to complete
+- Wait for automated tests to complete (template validation and dry-run testing)
 - Address any failures using the troubleshooting guide above
+- **Note:** Version validation happens during release, not during PR testing
 
 ### 6. Merge & Release
 - Once all tests pass, merge the PR
-- Charts are automatically released to GitHub Pages
-- New chart versions become available in the Helm repository
+- The release process will automatically:
+  - Validate chart version increments
+  - Create GitHub releases for properly versioned charts
+  - Publish charts to GitHub Pages
+- If version validation fails, a GitHub issue will be created
 
 ## 📖 Using Published Charts
 
@@ -317,11 +329,20 @@ helm install my-release my-charts/my-chart
 
 ## 🔍 Pipeline Configuration
 
-The pipeline is configured in `.github/workflows/release-charts.yml` and:
+The pipeline is configured in `.github/workflows/release-charts.yml` with two main jobs:
+
+### test-charts Job (Pull Requests)
 - Runs on Ubuntu latest with Minikube
 - Uses Helm 3.x
 - Tests against stable Kubernetes version
 - Retains test logs for 30 days
+- Validates template rendering and dry-run installations
+
+### release-charts Job (Main Branch)
+- Triggers only on pushes to main branch (after PR merge)
+- Performs version validation before release
+- Uses chart-releaser to publish to GitHub Pages
+- Creates GitHub issues if version validation fails
 - Requires specific permissions for releases
 
 For pipeline modifications, ensure you understand the security implications and test thoroughly in a fork first.
