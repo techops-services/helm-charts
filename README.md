@@ -163,6 +163,7 @@ The pipeline generates a results table showing:
    - Check for typos in template function names
 
 **Finding Logs:**
+
 ![alt text](img/logs.png)
 1. Check the PR comment for the "📁 Download detailed test logs" link
 2. Download the `helm-test-logs-[run-number]` artifact
