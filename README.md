@@ -4,6 +4,23 @@ Repository to use: "https://techops-services.github.io/helm-charts"
 
 This repository contains Helm charts that are automatically released to GitHub Pages using GitHub Actions. The charts are tested, validated, and published automatically when changes are made via pull requests.
 
+## 📑 Table of Contents
+
+- [📋 Repository Purpose](#-repository-purpose)
+- [🔄 Automated Pipeline Overview](#-automated-pipeline-overview)
+- [📝 Test Values Requirement](#-test-values-requirement)
+- [📊 Interpreting Test Results](#-interpreting-test-results)
+- [🔧 Troubleshooting Failed Checks](#-troubleshooting-failed-checks)
+  - [Template Validation Failures](#template-validation-failures)
+  - [Dry-run Installation Failures](#dry-run-installation-failures)
+  - [Version Increment Failures](#version-increment-failures)
+- [📁 Accessing Detailed Logs](#-accessing-detailed-logs)
+- [🚀 Chart Development Workflow](#-chart-development-workflow)
+- [📖 Using Published Charts](#-using-published-charts)
+- [💡 Best Practices](#-best-practices)
+- [🔍 Pipeline Configuration](#-pipeline-configuration)
+
+
 ## 📋 Repository Purpose
 
 This repository serves as a **Helm chart registry** that:
