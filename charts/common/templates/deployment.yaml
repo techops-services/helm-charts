@@ -81,8 +81,15 @@ spec:
       volumes:
         {{- range $volume := .Values.deployment.volumes }}
         - name: {{ $fullName }}-{{ $volume.name }}-volume
+          {{- if $volume.emptyDir }}
+          emptyDir:
+            {{- if $volume.emptyDir.sizeLimit }}
+            sizeLimit: {{ $volume.emptyDir.sizeLimit }}
+            {{- end }}
+          {{- else }}
           persistentVolumeClaim:
             claimName: {{ $fullName }}-{{ $volume.name }}-pvc
+          {{- end }}
         {{- end }}
       {{- end }}
       containers:
