@@ -1,6 +1,7 @@
 {{- if .Values.deployment.volumes }}
 {{- $fullName := include "common.fullname" . -}}
 {{- range $volume := .Values.deployment.volumes }}
+{{- if not $volume.emptyDir }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -24,5 +25,6 @@ spec:
   resources:
     {{- toYaml .resources | nindent 4 }}
   {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
