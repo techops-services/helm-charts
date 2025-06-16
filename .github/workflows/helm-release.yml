@@ -150,7 +150,7 @@ jobs:
           IFS=',' read -ra CHARTS <<< "${{ needs.detect-changes.outputs.changed-charts }}"
           
           # Initialize table header
-          TEST_RESULTS_TABLE="| Chart | Template Validation | Dry-run Installation | Overall Status |\n|-------|-------------------|---------------------|----------------|\n"
+          TEST_RESULTS_TABLE="| Chart | Version Check | Template Validation | Dry-run Installation | Overall Status |\n|-------|---------------|-------------------|---------------------|----------------|\n"
           
           for chart in "${CHARTS[@]}"; do
             echo "::group::Testing chart: $chart"
@@ -165,10 +165,30 @@ jobs:
             if [ ! -f "$VALUES_FILE" ]; then
               echo "::error::Values file not found: $VALUES_FILE"
               FAILED_CHARTS="$FAILED_CHARTS $chart"
-              TEST_RESULTS_TABLE="$TEST_RESULTS_TABLE| **$chart** | ❌ Values file not found | - | ❌ Failed |\n"
+              TEST_RESULTS_TABLE="$TEST_RESULTS_TABLE| **$chart** | - | ❌ Values file not found | - | ❌ Failed |\n"
               EXIT_CODE=1
               echo "::endgroup::"
               continue
+            fi
+            
+            # Simple version check
+            CURRENT_VERSION=$(grep '^version:' "charts/$chart/Chart.yaml" | awk '{print $2}' | tr -d '"')
+            LATEST_TAG=$(git tag -l "${chart}-*" --sort=-version:refname | head -n1)
+            
+            if [ -n "$LATEST_TAG" ]; then
+              LATEST_VERSION=$(echo "$LATEST_TAG" | sed "s/^${chart}-//")
+              if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+                echo "❌ Version not incremented: $CURRENT_VERSION"
+                VERSION_STATUS="❌ Not incremented"
+                FAILED_CHARTS="$FAILED_CHARTS $chart"
+                EXIT_CODE=1
+              else
+                echo "✅ Version incremented: $LATEST_VERSION → $CURRENT_VERSION"
+                VERSION_STATUS="✅ Incremented"
+              fi
+            else
+              echo "ℹ️ New chart: $CURRENT_VERSION"
+              VERSION_STATUS="ℹ️ New chart"
             fi
             
             # Test 1: Helm template validation
@@ -241,7 +261,7 @@ jobs:
             fi
             
             # Add row to table
-            TEST_RESULTS_TABLE="$TEST_RESULTS_TABLE| **$chart** | $TEMPLATE_STATUS | $DRYRUN_STATUS | $OVERALL_STATUS |\n"
+            TEST_RESULTS_TABLE="$TEST_RESULTS_TABLE| **$chart** | $VERSION_STATUS | $TEMPLATE_STATUS | $DRYRUN_STATUS | $OVERALL_STATUS |\n"
             
             echo "::endgroup::"
             echo ""
