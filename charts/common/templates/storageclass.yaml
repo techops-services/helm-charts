@@ -1,6 +1,6 @@
-{{- range $volume := .Values.deployment.volumes | default list }}
-{{- if and $volume $volume.name (not $volume.emptyDir) }}
 {{- $fullName := include "common.fullname" . -}}
+{{- range $volume := .Values.deployment.volumes | default list }}
+{{- if and $volume.name (not $volume.emptyDir) }}
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
