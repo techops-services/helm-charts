@@ -1,6 +1,6 @@
-{{- if .Values.deployment.volumes }}
 {{- $fullName := include "common.fullname" . -}}
-{{- range $volume := .Values.deployment.volumes }}
+{{- range $volume := .Values.deployment.volumes | default list }}
+{{- if and $volume.name (not $volume.emptyDir) }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
