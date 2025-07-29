@@ -63,6 +63,11 @@ spec:
                 configMapKeyRef:
                   name: {{ $v.name | quote }}
                   key: {{ $v.key | quote }}
+            {{- else if eq $v.type "secret" }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
             {{- end }}
             {{- end }}
           {{- end }}
@@ -164,6 +169,11 @@ spec:
                 configMapKeyRef:
                   name: {{ $v.name | quote }}
                   key: {{ $v.key | quote }}
+            {{- else if eq $v.type "secret" }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
             {{- end }}
             {{- end }}
           livenessProbe:
@@ -210,6 +220,11 @@ spec:
               {{- else if eq $v.type "configmapRef" }}
               valueFrom:
                 configMapKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+              {{- else if eq $v.type "secret" }}
+              valueFrom:
+                secretKeyRef:
                   name: {{ $v.name | quote }}
                   key: {{ $v.key | quote }}
               {{- end }}
