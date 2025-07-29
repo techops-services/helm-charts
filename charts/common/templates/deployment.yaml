@@ -122,7 +122,6 @@ spec:
             {{- range $volume := .Values.deployment.volumes }}
             - name: {{ $fullName }}-{{ $volume.name }}-volume
               mountPath: {{ $volume.mountPath }}
-              # if configmap or secret, readOnly: true
               {{- if or $volume.configMap $volume.secret }}
               readOnly: true
               {{- end }}
