@@ -90,6 +90,28 @@ spec:
           persistentVolumeClaim:
             claimName: {{ $fullName }}-{{ $volume.name }}-pvc
           {{- end }}
+          {{- if $volume.configMap }}
+          configMap:
+            name: {{ $volume.configMap.name }}
+            {{- if $volume.configMap.items }}
+            items:
+              {{- range $item := $volume.configMap.items }}
+              - key: {{ $item.key }}
+                path: {{ $item.path }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if $volume.secret }}
+          secret:
+            secretName: {{ $volume.secret.secretName }}
+            {{- if $volume.secret.items }}
+            items:
+              {{- range $item := $volume.secret.items }}
+              - key: {{ $item.key }}
+                path: {{ $item.path }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
         {{- end }}
       {{- end }}
       containers:
@@ -102,6 +124,10 @@ spec:
             {{- range $volume := .Values.deployment.volumes }}
             - name: {{ $fullName }}-{{ $volume.name }}-volume
               mountPath: {{ $volume.mountPath }}
+              # if configmap or secret, readOnly: true
+              {{- if or $volume.configMap $volume.secret }}
+              readOnly: true
+              {{- end }}
             {{- end }}
           {{- end }}
           {{- if .Values.command }}

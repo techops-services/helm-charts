@@ -68,6 +68,23 @@ deployment:
 #        requests:
 #          storage: 4Gi
 #
+#    - name: configmap-volume
+#      mountPath: /config
+#      configMap:
+#        name: configmap-name
+#        items:
+#          - key: config-key
+#            path: config-file-path
+#
+#    - name: secret-volume
+#      mountPath: /secret
+#      secret:
+#        name: secret-name
+#        items:
+#          - key: secret-key
+#            path: secret-file-path
+
+#
 #    - name: shared
 #      mountPath: /shared
 #      provisioner: efs.csi.aws.com
