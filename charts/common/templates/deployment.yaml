@@ -86,11 +86,7 @@ spec:
             {{- if $volume.emptyDir.sizeLimit }}
             sizeLimit: {{ $volume.emptyDir.sizeLimit }}
             {{- end }}
-          {{- else }}
-          persistentVolumeClaim:
-            claimName: {{ $fullName }}-{{ $volume.name }}-pvc
-          {{- end }}
-          {{- if $volume.configMap }}
+          {{- else if $volume.configMap }}
           configMap:
             name: {{ $volume.configMap.name }}
             {{- if $volume.configMap.items }}
@@ -100,8 +96,7 @@ spec:
                 path: {{ $item.path }}
               {{- end }}
             {{- end }}
-          {{- end }}
-          {{- if $volume.secret }}
+          {{- else if $volume.secret }}
           secret:
             secretName: {{ $volume.secret.secretName }}
             {{- if $volume.secret.items }}
@@ -111,6 +106,9 @@ spec:
                 path: {{ $item.path }}
               {{- end }}
             {{- end }}
+          {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ $fullName }}-{{ $volume.name }}-pvc
           {{- end }}
         {{- end }}
       {{- end }}
