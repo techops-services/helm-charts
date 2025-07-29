@@ -86,6 +86,26 @@ spec:
             {{- if $volume.emptyDir.sizeLimit }}
             sizeLimit: {{ $volume.emptyDir.sizeLimit }}
             {{- end }}
+          {{- else if $volume.configMap }}
+          configMap:
+            name: {{ $volume.configMap.name }}
+            {{- if $volume.configMap.items }}
+            items:
+              {{- range $item := $volume.configMap.items }}
+              - key: {{ $item.key }}
+                path: {{ $item.path }}
+              {{- end }}
+            {{- end }}
+          {{- else if $volume.secret }}
+          secret:
+            secretName: {{ $volume.secret.secretName }}
+            {{- if $volume.secret.items }}
+            items:
+              {{- range $item := $volume.secret.items }}
+              - key: {{ $item.key }}
+                path: {{ $item.path }}
+              {{- end }}
+            {{- end }}
           {{- else }}
           persistentVolumeClaim:
             claimName: {{ $fullName }}-{{ $volume.name }}-pvc
@@ -102,6 +122,9 @@ spec:
             {{- range $volume := .Values.deployment.volumes }}
             - name: {{ $fullName }}-{{ $volume.name }}-volume
               mountPath: {{ $volume.mountPath }}
+              {{- if or $volume.configMap $volume.secret }}
+              readOnly: true
+              {{- end }}
             {{- end }}
           {{- end }}
           {{- if .Values.command }}
