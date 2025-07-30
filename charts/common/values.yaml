@@ -313,6 +313,10 @@ env:
 #     type: parameterStore
 #     name: example-db
 #     parameter_name: DB_PASSWORD
+#   FROM_SECRET:
+#     type: secret
+#     name: example-secret
+#     key: FROM_SECRET
 
 serviceMonitors:
   enabled: false
