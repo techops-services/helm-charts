@@ -1,7 +1,0 @@
-{
-	"name": "Helm Charts Development",
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
-	"remoteUser": "root"
-}
