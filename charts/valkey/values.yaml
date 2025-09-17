@@ -1,0 +1,43 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: valkey/valkey
+  tag: "8.1-alpine"
+  pullPolicy: IfNotPresent
+
+architecture: standalone
+
+replica:
+  replicaCount: 0
+
+master:
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+  service:
+    type: ClusterIP
+    port: 6379
+
+networkPolicy:
+  enabled: true
+  allowExternal: false
+  allowExternalEgress: true
+
+auth:
+  enabled: true
+  existingSecret: "valkey-pass"
+  existingSecretPasswordKey: "VALKEY_PASS"
+
+labels:
+  app: "valkey"
+  app.kubernetes.io/name: "valkey"
