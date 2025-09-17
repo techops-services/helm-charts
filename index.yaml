@@ -1133,6 +1133,26 @@ entries:
   valkey:
   - apiVersion: v2
     appVersion: 8.1.3
+    created: "2025-09-17T17:22:04.159251403Z"
+    description: Valkey is an open source (BSD) high-performance key/value datastore
+      that supports a variety workloads such as caching, message queues, and can act
+      as a primary database.
+    digest: d1a8c00edece8b0c0a6f626f8b6ed456667d563c183e4e9459ea64bfea794ea4
+    home: https://valkey.io
+    icon: https://valkey.io/assets/images/valkey_full_color_light_bg.svg
+    keywords:
+    - valkey
+    - keyvalue
+    - database
+    name: valkey
+    sources:
+    - https://github.com/valkey-io/valkey
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/valkey-1.0.1/valkey-1.0.1.tgz
+    version: 1.0.1
+  - apiVersion: v2
+    appVersion: 8.1.3
     created: "2025-09-17T16:58:48.987340961Z"
     description: Valkey is an open source (BSD) high-performance key/value datastore
       that supports a variety workloads such as caching, message queues, and can act
@@ -1151,4 +1171,4 @@ entries:
     urls:
     - https://github.com/techops-services/helm-charts/releases/download/valkey-1.0.0/valkey-1.0.0.tgz
     version: 1.0.0
-generated: "2025-09-17T16:58:48.987493483Z"
+generated: "2025-09-17T17:22:04.159449034Z"
