@@ -13,6 +13,7 @@ serviceAccount:
   create: true
   name: ""
   annotations: {}
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME
 
 podSecurityContext:
   runAsUser: 1000
@@ -43,6 +44,10 @@ config:
   discourseS3Region: us-east-1
   discourseS3Bucket: forum-uploads
   discourseS3BackupBucket: forum-backups
+  discourseS3UploadsPrefix: ""
+  discourseS3BackupsPrefix: ""
+  discourseS3UseIamProfile: false
+  discourseS3Endpoint: ""
   discourseDeveloperEmails: admin@example.com
   discourseMaxMindLicenseKey: ""
   smtpAddress: smtp.example.com
@@ -140,6 +145,18 @@ ingress:
         - path: /
           pathType: Prefix
   tls: []
+    # - secretName: discourse-tls
+    #   hosts:
+    #     - forum.example.com
+  # Certificate manager integration (optional)
+  # Automatically creates a Certificate resource using cert-manager
+  certManager:
+    enabled: false
+    # issuerName: letsencrypt-prod
+    # issuerKind: ClusterIssuer
+    # secretName: ""  # defaults to <fullname>-tls
+    # duration: 2160h  # 90 days
+    # renewBefore: 720h  # 30 days
 
 postgresql:
   enabled: true
@@ -215,3 +232,29 @@ podDisruptionBudget:
 
 autoscaling:
   enabled: false
+
+# External Secrets configuration (optional)
+# Used when env variables have type: parameterStore
+externalSecrets: {}
+  # clusterSecretStoreName: aws-parameter-store
+  # refreshInterval: 1m
+
+# Environment variables with flexible sourcing
+# Supports multiple types: kv, parameterStore, secret, configmapRef
+env: {}
+  # Example configurations:
+  # CUSTOM_VAR:
+  #   type: kv
+  #   value: "hardcoded-value"
+  # DB_PASSWORD:
+  #   type: parameterStore
+  #   name: db-password
+  #   parameter_name: /discourse/prod/db-password
+  # API_KEY:
+  #   type: secret
+  #   name: discourse-api-keys
+  #   key: api-key
+  # CONFIG_VALUE:
+  #   type: configmapRef
+  #   name: discourse-config
+  #   key: config-value

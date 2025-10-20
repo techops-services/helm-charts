@@ -41,6 +41,8 @@ spec:
                 secretKeyRef:
                   name: {{ include "discourse.fullname" . }}-secrets
                   key: DISCOURSE_DB_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             {{- with .Values.postgresql.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -80,5 +82,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ default (printf "%s-data" (include "discourse.postgresql.fullname" .)) .Values.postgresql.persistence.existingClaim }}
+      {{- else }}
+      volumes:
+        - name: data
+          emptyDir: {}
       {{- end }}
 {{- end }}

@@ -19,8 +19,6 @@ discourse/
 ├── Chart.yaml
 ├── README.md
 ├── values.yaml
-├── values-staging.yaml
-├── values-production.yaml
 └── templates/
     ├── _helpers.tpl
     ├── configmap.yaml
@@ -54,13 +52,13 @@ Base settings live in `values.yaml` and are shared between environments. Key sec
 - `postgresql.*` / `redis.*`: Toggle embedded services and persistence options.
 - `web.*` / `sidekiq.*`: Pod-level settings, resources, probes, and autoscaling.
 - `ingress.*`: Ingress class, annotations, hosts, and TLS.
-- `networkPolicy.*` and `podDisruptionBudget.*`: Optional hardening controls.
+- `networkPolicy.*`: Optional traffic controls per component.
+- `podDisruptionBudget.*`: Optional hardening controls.
 
-Refer to `values-staging.yaml` and `values-production.yaml` for fully composed examples.
 
 ## Deploying Staging (All-In-Cluster)
 
-1. Create (and version) copies of `values-staging.yaml` with real secrets, or supply them at install time via `--set-file` / `--set`.
+1. Create (and version) copies of `values.yaml` with real secrets, or supply them at install time via `--set-file` / `--set`.
 2. Ensure the target namespace exists:
 
    ```bash
@@ -131,11 +129,143 @@ Refer to `values-staging.yaml` and `values-production.yaml` for fully composed e
 - [ ] Test large uploads to verify S3 credentials and bucket policies.
 - [ ] Exercise backup and rollback procedures before cutover.
 
+## TLS/Certificate Configuration
+
+### Using cert-manager
+
+If you have cert-manager installed in your cluster, you can automatically provision TLS certificates:
+
+```yaml
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: forum.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  certManager:
+    enabled: true
+    issuerName: letsencrypt-prod
+    issuerKind: ClusterIssuer
+    # secretName: forum-tls  # Optional, defaults to <release>-discourse-tls
+    duration: 2160h  # 90 days
+    renewBefore: 720h  # 30 days
+```
+
+### Using existing TLS secret
+
+If you already have a TLS secret:
+
+```yaml
+ingress:
+  enabled: true
+  tls:
+    - secretName: existing-tls-secret
+      hosts:
+        - forum.example.com
+```
+
+## Environment Variables Configuration
+
+The chart supports flexible environment variable configuration with multiple sourcing options:
+
+### Variable Types
+
+1. **kv (Key-Value)**: Hardcoded values directly in values.yaml
+2. **parameterStore**: AWS Parameter Store via External Secrets Operator
+3. **secret**: Reference to existing Kubernetes Secret
+4. **configmapRef**: Reference to existing ConfigMap
+
+### Examples
+
+```yaml
+externalSecrets:
+  clusterSecretStoreName: aws-parameter-store
+  refreshInterval: 1m
+
+env:
+  # Hardcoded value
+  DISCOURSE_SMTP_DOMAIN:
+    type: kv
+    value: example.com
+
+  # From AWS Parameter Store
+  DISCOURSE_SECRET_KEY_BASE:
+    type: parameterStore
+    name: secret-key-base
+    parameter_name: /discourse/prod/secret-key-base
+
+  # From existing Kubernetes Secret
+  API_KEY:
+    type: secret
+    name: discourse-api-keys
+    key: api-key
+
+  # From existing ConfigMap
+  CUSTOM_CONFIG:
+    type: configmapRef
+    name: discourse-custom-config
+    key: custom-value
+```
+
+### Prerequisites for parameterStore type
+
+- External Secrets Operator must be installed
+- ClusterSecretStore must be configured
+- IAM permissions for accessing Parameter Store
+
+## IRSA Configuration for S3 Access
+
+Instead of using static AWS credentials, you can configure IAM Roles for Service Accounts (IRSA) to grant Discourse pods access to S3 buckets.
+
+### Prerequisites
+
+1. Create an IAM role with appropriate S3 permissions
+2. Configure the trust policy to allow your EKS service account to assume the role
+3. Ensure your EKS cluster has an OIDC provider configured
+
+### Configuration
+
+Add the IAM role ARN to your values file:
+
+```yaml
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME
+
+config:
+  discourseS3Bucket: your-bucket-name
+  discourseS3BackupBucket: your-bucket-name  # Can be the same bucket with different prefix
+  discourseS3UploadsPrefix: uploads/
+  discourseS3BackupsPrefix: backups/
+
+# When using IRSA, S3 credentials are not required
+secrets:
+  s3AccessKeyId: ""
+  s3SecretAccessKey: ""
+```
+
+### Example for Staging
+
+```yaml
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::068992353948:role/eks-forum-staging-discourse-s3
+
+config:
+  discourseS3Bucket: forum-staging.sky.money
+  discourseS3BackupBucket: forum-staging.sky.money
+  discourseS3UploadsPrefix: uploads/
+  discourseS3BackupsPrefix: backups/
+```
+
 ## Development Notes
 
 - The rendered manifests assume Kubernetes DNS is available (`kube-dns` / `CoreDNS`).
-- Managed identity/IRSA integrations can be added by setting `serviceAccount.annotations` (e.g., link to an IAM role for S3 access).
-- Uncomment `networkPolicy.enabled` and `podDisruptionBudget.*` only after verifying HPA and replica counts satisfy availability goals.
+- When using IRSA for S3 access, the `secrets.s3AccessKeyId` and `secrets.s3SecretAccessKey` values can be left empty.
+- Enable `networkPolicy.*` and `podDisruptionBudget.*` only after verifying HPA and replica counts satisfy availability goals.
 
 ## Removing the Stack
 

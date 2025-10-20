@@ -50,9 +50,35 @@ spec:
             {{- with .Values.sidekiq.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k | quote }}
+            {{- if eq $v.type "kv" }}
+              value: {{ $v.value | quote }}
+            {{- else if eq $v.type "parameterStore" }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ include "discourse.fullname" $ }}-{{ $v.name }}"
+                  key: "{{ include "discourse.fullname" $ }}-{{ $v.name }}"
+            {{- else if eq $v.type "configmapRef" }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+            {{- else if eq $v.type "secret" }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+            {{- end }}
+            {{- end }}
             {{- with .Values.sidekiq.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          volumeMounts:
+            - name: shared-tmp
+              mountPath: /shared/tmp
+            - name: shared-state
+              mountPath: /shared/state
           resources:
             {{- toYaml .Values.sidekiq.resources | nindent 12 }}
           securityContext:
@@ -69,3 +95,8 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: shared-tmp
+          emptyDir: {}
+        - name: shared-state
+          emptyDir: {}
