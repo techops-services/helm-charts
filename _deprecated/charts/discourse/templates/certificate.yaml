@@ -1,0 +1,20 @@
+{{- if and .Values.ingress.enabled .Values.ingress.certManager .Values.ingress.certManager.enabled }}
+{{- $fullName := include "discourse.fullname" . -}}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "discourse.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.ingress.certManager.secretName | default (printf "%s-tls" $fullName) }}
+  duration: {{ .Values.ingress.certManager.duration | default "2160h" }}
+  renewBefore: {{ .Values.ingress.certManager.renewBefore | default "720h" }}
+  issuerRef:
+    name: {{ required "ingress.certManager.issuerName is required when certManager is enabled" .Values.ingress.certManager.issuerName }}
+    kind: {{ .Values.ingress.certManager.issuerKind | default "ClusterIssuer" }}
+  dnsNames:
+  {{- range .Values.ingress.hosts }}
+    - {{ .host | quote }}
+  {{- end }}
+{{- end }}

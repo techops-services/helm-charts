@@ -1,0 +1,19 @@
+{{- if .Values.podDisruptionBudget.sidekiq.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "discourse.fullname" . }}-sidekiq
+  labels:
+    {{- include "discourse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sidekiq
+spec:
+  selector:
+    matchLabels:
+      {{- include "discourse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: sidekiq
+  {{- if .Values.podDisruptionBudget.sidekiq.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.sidekiq.minAvailable }}
+  {{- else if .Values.podDisruptionBudget.sidekiq.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.sidekiq.maxUnavailable }}
+  {{- end }}
+{{- end }}

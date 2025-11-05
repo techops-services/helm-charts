@@ -1,0 +1,290 @@
+# Staging environment configuration for Discourse
+# Migrated from Bitnami Discourse Helm chart
+# Uses official discourse/discourse:beta image with embedded PostgreSQL and Redis
+
+# Image Configuration (official upstream, not Bitnami)
+image:
+  repository: discourse/discourse
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Service Account with IRSA for S3 access
+serviceAccount:
+  create: true
+  name: forum-staging-discourse
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::068992353948:role/eks-forum-staging-discourse-s3
+
+# Pod Security Context (run as root to allow chown)
+podSecurityContext:
+  runAsUser: 0  # root
+  runAsGroup: 0  # root
+  fsGroup: 1000  # ensure projected IRSA token readable by discourse user
+  fsGroupChangePolicy: OnRootMismatch
+
+# Container Security Context (allow running as root)
+securityContext:
+  allowPrivilegeEscalation: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    add:
+      - CHOWN
+    drop: []
+
+# Discourse Configuration
+config:
+  discourseHostname: forum-staging.sky.money
+  discourseDbHost: ""  # Will use embedded PostgreSQL
+  discourseDbName: discourse
+  discourseDbUsername: discourse
+  discourseDbPort: 5432
+  discourseRedisHost: ""  # Will use embedded Redis
+  discourseRedisPort: 6379
+  discourseEnableCors: true
+  discourseCorsOrigin: "*"
+  discourseServeStaticAssets: false
+
+  # S3 Configuration (IRSA-based, no credentials)
+  discourseS3Enabled: true
+  discourseUseS3: true
+  discourseS3Region: us-east-2
+  discourseS3Bucket: forum-staging.sky.money
+  discourseS3BackupBucket: forum-staging.sky.money
+  discourseS3UploadsPrefix: uploads/
+  discourseS3BackupsPrefix: backups/
+  discourseS3UseIamProfile: true
+  discourseS3Endpoint: ""
+
+  # Admin Configuration
+  discourseDeveloperEmails: team@techops.services
+  discourseMaxMindLicenseKey: ""
+
+  # SMTP Configuration (from Bitnami values)
+  smtpAddress: email-smtp.us-east-1.amazonaws.com
+  smtpPort: 587
+  smtpUserName: AKIARAECDY2ON5PL2AEK
+  smtpDomain: sky.money
+  smtpEnableStartTls: true
+
+# Secrets (no S3 credentials needed with IRSA)
+secrets:
+  dbPassword: "ForumStaging2024DB"
+  redisPassword: ""  # Redis without auth for staging
+  s3AccessKeyId: ""
+  s3SecretAccessKey: ""
+  smtpPassword: "BDC8aj/Y1I/gvOEkVnow/t/N1HzQQ5E+EwS6+fWMqZdM"
+
+# Additional environment variables via flexible env pattern
+env:
+  DISCOURSE_VERSION:
+    type: kv
+    value: "tests-passed"
+  LANG:
+    type: kv
+    value: "en_US.UTF-8"
+  UNICORN_WORKERS:
+    type: kv
+    value: "4"
+  DISCOURSE_ENABLE_MINI_PROFILER:
+    type: kv
+    value: "true"
+  DISCOURSE_VERBOSE_LOCALIZATION:
+    type: kv
+    value: "true"
+  AWS_REGION:
+    type: kv
+    value: "us-east-2"
+  DISCOURSE_COMPRESS_ANON_CACHE:
+    type: kv
+    value: "false"
+  DB_DEFAULT_TEXT_SEARCH_CONFIG:
+    type: kv
+    value: "pg_catalog.english"
+  DISCOURSE_BACKUP_LOCATION:
+    type: kv
+    value: "s3"
+  DISCOURSE_S3_ACL:
+    type: kv
+    value: "private"
+
+# Web Configuration
+web:
+  replicaCount: 1
+  command:
+    - /sbin/boot
+  env:
+    - name: RAILS_ENV
+      value: production
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+  # Extended probes for slow startup (from Bitnami)
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /srv/status
+      port: http
+    initialDelaySeconds: 300  # 5 minutes
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /srv/status
+      port: http
+    initialDelaySeconds: 120  # 2 minutes
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 20
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+  extraEnvFrom: []
+
+  hpa:
+    enabled: false
+
+# Sidekiq Configuration
+sidekiq:
+  replicaCount: 1
+  command:
+    - /sbin/boot
+  env:
+    - name: DISCOURSE_SIDEKIQ
+      value: "1"
+    - name: RAILS_ENV
+      value: production
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # Additional Sidekiq environment variables
+  extraEnv:
+    - name: DISCOURSE_SIDEKIQ_WORKERS
+      value: "2"
+
+# Service Configuration
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+# Ingress Configuration (Traefik with Cloudflare)
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+  hosts:
+    - host: forum-staging.sky.money
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: forum-staging-tls-secret
+      hosts:
+        - forum-staging.sky.money
+
+  # Certificate manager configuration
+  certManager:
+    enabled: true
+    issuerName: cloudflare
+    issuerKind: ClusterIssuer
+    secretName: forum-staging-tls-secret
+    duration: 2160h0m0s  # 90 days
+    renewBefore: 720h0m0s  # 30 days
+
+# PostgreSQL Configuration (embedded for staging)
+postgresql:
+  enabled: true
+  servicePort: 5432
+  replicaCount: 1
+  image:
+    repository: pgvector/pgvector
+    tag: "pg14"
+    pullPolicy: IfNotPresent
+
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: gp3
+    accessModes:
+      - ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+
+  parameters:
+    max_connections: "200"
+
+  podSecurityContext: {}
+
+  containerSecurityContext: {}
+
+# Redis Configuration (embedded for staging)
+redis:
+  enabled: true
+  servicePort: 6379
+  image:
+    repository: redis
+    tag: "7"
+    pullPolicy: IfNotPresent
+
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: gp3
+    accessModes:
+      - ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+  podSecurityContext: {}
+
+  containerSecurityContext: {}
+
+# Network Policy (disabled for staging)
+networkPolicy:
+  enabled: false
+
+# Pod Disruption Budget (disabled for single replica)
+podDisruptionBudget:
+  web:
+    enabled: false
+  sidekiq:
+    enabled: false
+
+# Autoscaling (disabled for staging)
+autoscaling:
+  enabled: false

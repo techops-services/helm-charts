@@ -1,0 +1,303 @@
+# Parent Chart Values for Forum Staging
+# Usage: helm install forum-staging . -f helm-values-staging.yaml -n forum --create-namespace
+
+# Certificate Configuration (managed by parent chart)
+certificate:
+  enabled: true
+  name: forum-staging-tls
+  dnsNames:
+    - forum-staging.sky.money
+  duration: 2160h0m0s
+  renewBefore: 720h0m0s
+  secretName: forum-staging-tls-secret
+  issuer:
+    kind: ClusterIssuer
+    name: cloudflare
+
+# Discourse subchart values
+discourse:
+  # Global Configuration
+  global:
+    storageClass: gp3
+
+  image:
+    registry: docker.io
+    repository: bitnami/discourse
+    pullPolicy: IfNotPresent
+
+# Discourse Configuration
+discourse:
+  host: forum-staging.sky.money
+  siteName: "MakerDAO Forum Staging"
+  
+  # Skip install wizard - we'll restore from backup
+  skipInstall: false
+  
+  # Username/password for initial admin (staging only)
+  username: admin
+  password: ForumAdmin2024Staging
+  email: team@techops.services
+  
+  # Plugins from app.yaml
+  plugins:
+    - https://github.com/discourse/docker_manager.git
+    - https://github.com/makerdao/discourse-docs.git
+    - https://github.com/makerdao/discourse-docs-card-filter.git
+    - https://github.com/hernandoagf/extended-api-scopes.git
+    - https://github.com/unfoldingWord-dev/discourse-mermaid.git
+  
+  persistPlugins: true
+  compatiblePlugins: true
+  
+  # Extra environment variables from app.yaml
+  extraEnvVars:
+    - name: DISCOURSE_VERSION
+      value: "tests-passed"
+    - name: LANG
+      value: "en_US.UTF-8"
+    - name: UNICORN_WORKERS
+      value: "4"
+    - name: DISCOURSE_DEVELOPER_EMAILS
+      value: "team@techops.services"
+    - name: DISCOURSE_ONION
+      value: ""
+    - name: DISCOURSE_ENABLE_MINI_PROFILER
+      value: "true"
+    - name: DISCOURSE_VERBOSE_LOCALIZATION
+      value: "true"
+    - name: DISCOURSE_COMPRESS_ANON_CACHE
+      value: "false"
+    - name: DB_DEFAULT_TEXT_SEARCH_CONFIG
+      value: "pg_catalog.english"
+    # S3 uploads and backups via IRSA (no static keys)
+    - name: DISCOURSE_USE_S3
+      value: "true"
+    - name: DISCOURSE_S3_REGION
+      value: "us-east-1"
+    - name: DISCOURSE_S3_BUCKET
+      value: "REPLACE_ME_UPLOAD_BUCKET"
+    - name: DISCOURSE_BACKUP_LOCATION
+      value: "s3"
+    - name: DISCOURSE_S3_BACKUP_BUCKET
+      value: "REPLACE_ME_BACKUP_BUCKET"
+    - name: DISCOURSE_S3_ACL
+      value: "private"
+    - name: DISCOURSE_S3_ENDPOINT
+      value: ""
+    - name: AWS_REGION
+      value: "us-east-1"
+    # Internal database settings (using subcharts)
+    - name: DISCOURSE_DATABASE_HOST
+      value: "forum-staging-postgresql"
+    - name: DISCOURSE_DATABASE_PORT
+      value: "5432"
+    - name: DISCOURSE_DATABASE_NAME
+      value: "discourse"
+    - name: DISCOURSE_DATABASE_USERNAME
+      value: "discourse"
+    - name: DISCOURSE_DATABASE_PASSWORD
+      value: "ForumStaging2024DB"
+    - name: DISCOURSE_REDIS_HOST
+      value: "forum-staging-redis-master"
+    - name: DISCOURSE_REDIS_PORT
+      value: "6379"
+    # Allow empty Redis password for staging
+    - name: ALLOW_EMPTY_PASSWORD
+      value: "yes"
+  
+  # SMTP Configuration from app.yaml
+  smtp:
+    enabled: true
+    host: email-smtp.us-east-1.amazonaws.com
+    port: 587
+    user: AKIARAECDY2ON5PL2AEK
+    password: "BDC8aj/Y1I/gvOEkVnow/t/N1HzQQ5E+EwS6+fWMqZdM"
+    tls: true
+    auth: plain
+  
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 500m
+    limits:
+      memory: 4Gi
+      cpu: 2
+  
+  # IRSA service account for Discourse
+  serviceAccount:
+    create: true
+    name: forum-staging-discourse
+    automountServiceAccountToken: true
+    annotations:
+      eks.amazonaws.com/role-arn: "REPLACE_ME_IRSA_ROLE_ARN"
+  # Ensure pod receives token for IRSA
+  automountServiceAccountToken: true
+
+# Sidekiq Configuration
+sidekiq:
+  enabled: true
+  
+  # Extra environment for sidekiq
+  extraEnvVars:
+    - name: DISCOURSE_SIDEKIQ_WORKERS
+      value: "2"
+    # S3 uploads and backups via IRSA (match app env)
+    - name: DISCOURSE_USE_S3
+      value: "true"
+    - name: DISCOURSE_S3_REGION
+      value: "us-east-1"
+    - name: DISCOURSE_S3_BUCKET
+      value: "REPLACE_ME_UPLOAD_BUCKET"
+    - name: DISCOURSE_BACKUP_LOCATION
+      value: "s3"
+    - name: DISCOURSE_S3_BACKUP_BUCKET
+      value: "REPLACE_ME_BACKUP_BUCKET"
+    - name: DISCOURSE_S3_ACL
+      value: "private"
+    - name: DISCOURSE_S3_ENDPOINT
+      value: ""
+    - name: AWS_REGION
+      value: "us-east-1"
+  
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 250m
+    limits:
+      memory: 2Gi
+      cpu: 1
+
+# PostgreSQL Configuration (Internal subchart)
+postgresql:
+  enabled: true
+  auth:
+    username: discourse
+    password: ForumStaging2024DB
+    database: discourse
+    postgresPassword: PostgresAdmin2024Staging
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: gp3
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 250m
+      limits:
+        memory: 2Gi
+        cpu: 500m
+
+# Redis Configuration (Internal subchart)
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: gp3
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 250m
+
+# Persistence Configuration with EBS GP3
+persistence:
+  enabled: true
+  storageClass: gp3
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+
+# Service Configuration  
+service:
+  type: ClusterIP
+  ports:
+    http: 80
+    https: 443
+
+# Ingress Configuration (following ArgoCD pattern)
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  hostname: forum-staging.sky.money
+  pathType: Prefix
+  path: /
+  annotations:
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+  extraTls:
+    - hosts:
+        - forum-staging.sky.money
+      secretName: forum-staging-tls-secret
+
+# Autoscaling (disabled for staging)
+autoscaling:
+  enabled: false
+
+# Replicas (single for staging)
+replicaCount: 1
+
+# Disable PodDisruptionBudget for single pod
+podDisruptionBudget:
+  enabled: false
+
+# Node affinity
+affinity: {}
+
+# Tolerations
+tolerations: []
+
+# Health Check Probes - Extended for slow startup
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 30  # 60 + (30 * 30) = 960 seconds (16 minutes) max startup time
+  successThreshold: 1
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 300  # Start after 5 minutes
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 120  # Start checking after 2 minutes
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 20  # 120 + (15 * 20) = 420 seconds (7 minutes)
+  successThreshold: 1
+
+# Security Context
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1001
+  runAsNonRoot: true
+
+podSecurityContext:
+  enabled: true
+  fsGroup: 1001
+
+# Certificate subchart configuration
+forum-certificate:
+  certificate:
+    enabled: true
+    name: forum-staging-tls
+    namespace: forum
+    dnsNames:
+      - forum-staging.sky.money
+    duration: 2160h0m0s
+    renewBefore: 720h0m0s
+    secretName: forum-staging-tls-secret
+    issuer:
+      kind: ClusterIssuer
+      name: cloudflare

@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "discourse.fullname" . }}-config
+  labels:
+    {{- include "discourse.labels" . | nindent 4 }}
+data:
+  DISCOURSE_HOSTNAME: {{ required "config.discourseHostname must be provided" .Values.config.discourseHostname | quote }}
+  DISCOURSE_DB_NAME: {{ .Values.config.discourseDbName | quote }}
+  DISCOURSE_DB_USERNAME: {{ .Values.config.discourseDbUsername | quote }}
+  DISCOURSE_DB_PORT: {{ printf "%d" (int .Values.config.discourseDbPort) | quote }}
+  DISCOURSE_REDIS_PORT: {{ printf "%d" (int .Values.config.discourseRedisPort) | quote }}
+  DISCOURSE_ENABLE_CORS: {{ ternary "true" "false" .Values.config.discourseEnableCors | quote }}
+  DISCOURSE_CORS_ORIGIN: {{ .Values.config.discourseCorsOrigin | quote }}
+  DISCOURSE_SERVE_STATIC_ASSETS: {{ ternary "true" "false" .Values.config.discourseServeStaticAssets | quote }}
+  DISCOURSE_S3_ENABLED: {{ ternary "true" "false" .Values.config.discourseS3Enabled | quote }}
+  DISCOURSE_USE_S3: {{ ternary "true" "false" .Values.config.discourseUseS3 | quote }}
+{{- if .Values.config.discourseUseS3 }}
+  DISCOURSE_S3_REGION: {{ .Values.config.discourseS3Region | quote }}
+  DISCOURSE_S3_BUCKET: {{ .Values.config.discourseS3Bucket | quote }}
+  DISCOURSE_S3_UPLOAD_BUCKET: {{ .Values.config.discourseS3Bucket | quote }}
+  DISCOURSE_S3_BACKUP_BUCKET: {{ .Values.config.discourseS3BackupBucket | quote }}
+  DISCOURSE_S3_USE_IAM_PROFILE: {{ ternary "true" "false" .Values.config.discourseS3UseIamProfile | quote }}
+{{- if .Values.config.discourseS3Endpoint }}
+  DISCOURSE_S3_ENDPOINT: {{ .Values.config.discourseS3Endpoint | quote }}
+{{- end }}
+{{- if .Values.config.discourseS3UploadsPrefix }}
+  DISCOURSE_S3_UPLOAD_BUCKET_PREFIX: {{ .Values.config.discourseS3UploadsPrefix | quote }}
+{{- end }}
+{{- if .Values.config.discourseS3BackupsPrefix }}
+  DISCOURSE_S3_BACKUP_BUCKET_PREFIX: {{ .Values.config.discourseS3BackupsPrefix | quote }}
+{{- end }}
+{{- end }}
+  DISCOURSE_DEVELOPER_EMAILS: {{ .Values.config.discourseDeveloperEmails | quote }}
+  DISCOURSE_MAXMIND_LICENSE_KEY: {{ default "" .Values.config.discourseMaxMindLicenseKey | quote }}
+{{- if .Values.postgresql.enabled }}
+  DISCOURSE_DB_HOST: {{ include "discourse.postgresql.serviceName" . | quote }}
+{{- else }}
+  DISCOURSE_DB_HOST: {{ default "" .Values.config.discourseDbHost | quote }}
+{{- end }}
+{{- if .Values.redis.enabled }}
+  DISCOURSE_REDIS_HOST: {{ include "discourse.redis.serviceName" . | quote }}
+{{- else }}
+  DISCOURSE_REDIS_HOST: {{ default "" .Values.config.discourseRedisHost | quote }}
+{{- end }}
+  DISCOURSE_ENABLE_S3_UPLOADS: {{ ternary "true" "false" .Values.config.discourseS3Enabled | quote }}
+  SMTP_ADDRESS: {{ .Values.config.smtpAddress | quote }}
+  SMTP_PORT: {{ printf "%d" (int .Values.config.smtpPort) | quote }}
+  SMTP_USER_NAME: {{ .Values.config.smtpUserName | quote }}
+  SMTP_DOMAIN: {{ .Values.config.smtpDomain | quote }}
+  SMTP_ENABLE_START_TLS: {{ ternary "true" "false" .Values.config.smtpEnableStartTls | quote }}
