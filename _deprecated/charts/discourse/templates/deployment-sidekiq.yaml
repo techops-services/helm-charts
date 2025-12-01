@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "discourse.fullname" . }}-sidekiq
+  labels:
+    {{- include "discourse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sidekiq
+spec:
+  replicas: {{ .Values.sidekiq.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "discourse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: sidekiq
+  template:
+    metadata:
+      labels:
+        {{- include "discourse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: sidekiq
+      {{- with .Values.sidekiq.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "discourse.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: sidekiq
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.sidekiq.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "discourse.fullname" . }}-config
+            - secretRef:
+                name: {{ include "discourse.fullname" . }}-secrets
+            {{- with .Values.sidekiq.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          env:
+            {{- with .Values.sidekiq.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k | quote }}
+            {{- if eq $v.type "kv" }}
+              value: {{ $v.value | quote }}
+            {{- else if eq $v.type "parameterStore" }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ include "discourse.fullname" $ }}-{{ $v.name }}"
+                  key: "{{ include "discourse.fullname" $ }}-{{ $v.name }}"
+            {{- else if eq $v.type "configmapRef" }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+            {{- else if eq $v.type "secret" }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.sidekiq.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: shared-tmp
+              mountPath: /shared/tmp
+            - name: shared-state
+              mountPath: /shared/state
+          resources:
+            {{- toYaml .Values.sidekiq.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+      {{- with .Values.sidekiq.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.sidekiq.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.sidekiq.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: shared-tmp
+          emptyDir: {}
+        - name: shared-state
+          emptyDir: {}

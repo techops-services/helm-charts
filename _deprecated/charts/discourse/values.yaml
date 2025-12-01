@@ -1,0 +1,260 @@
+global:
+  nameOverride: ""
+  fullnameOverride: ""
+
+image:
+  repository: discourse/discourse
+  tag: beta
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+config:
+  discourseHostname: forum.example.com
+  discourseDbHost: ""
+  discourseDbName: discourse
+  discourseDbUsername: discourse
+  discourseDbPort: 5432
+  discourseRedisHost: ""
+  discourseRedisPort: 6379
+  discourseEnableCors: true
+  discourseCorsOrigin: "*"
+  discourseServeStaticAssets: false
+  discourseS3Enabled: true
+  discourseUseS3: true
+  discourseS3Region: us-east-1
+  discourseS3Bucket: forum-uploads
+  discourseS3BackupBucket: forum-backups
+  discourseS3UploadsPrefix: ""
+  discourseS3BackupsPrefix: ""
+  discourseS3UseIamProfile: false
+  discourseS3Endpoint: ""
+  discourseDeveloperEmails: admin@example.com
+  discourseMaxMindLicenseKey: ""
+  smtpAddress: smtp.example.com
+  smtpPort: 587
+  smtpUserName: smtp-user
+  smtpDomain: example.com
+  smtpEnableStartTls: true
+
+secrets:
+  dbPassword: ""
+  redisPassword: ""
+  s3AccessKeyId: ""
+  s3SecretAccessKey: ""
+  smtpPassword: ""
+
+uploads:
+  s3ConfigSecretName: ""
+
+web:
+  replicaCount: 1
+  command:
+    - /sbin/boot
+  env:
+    - name: RAILS_ENV
+      value: production
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /srv/status
+      port: http
+    initialDelaySeconds: 60
+    periodSeconds: 30
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /srv/status
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+  extraEnvFrom: []
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: null
+
+sidekiq:
+  replicaCount: 1
+  command:
+    - /sbin/boot
+  env:
+    - name: DISCOURSE_SIDEKIQ
+      value: "1"
+    - name: RAILS_ENV
+      value: production
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+  extraEnvFrom: []
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+  hosts:
+    - host: forum.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: discourse-tls
+    #   hosts:
+    #     - forum.example.com
+  # Certificate manager integration (optional)
+  # Automatically creates a Certificate resource using cert-manager
+  certManager:
+    enabled: false
+    # issuerName: letsencrypt-prod
+    # issuerKind: ClusterIssuer
+    # secretName: ""  # defaults to <fullname>-tls
+    # duration: 2160h  # 90 days
+    # renewBefore: 720h  # 30 days
+
+postgresql:
+  enabled: true
+  servicePort: 5432
+  replicaCount: 1
+  image:
+    repository: postgres
+    tag: "14"
+    pullPolicy: IfNotPresent
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    existingClaim: ""
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  parameters:
+    max_connections: "200"
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  extraEnv: []
+
+redis:
+  enabled: true
+  servicePort: 6379
+  image:
+    repository: redis
+    tag: "7"
+    pullPolicy: IfNotPresent
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    existingClaim: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  extraEnv: []
+
+networkPolicy:
+  enabled: false
+
+podDisruptionBudget:
+  web:
+    enabled: false
+    minAvailable: 1
+  sidekiq:
+    enabled: false
+    minAvailable: 1
+
+autoscaling:
+  enabled: false
+
+# External Secrets configuration (optional)
+# Used when env variables have type: parameterStore
+externalSecrets: {}
+  # clusterSecretStoreName: aws-parameter-store
+  # refreshInterval: 1m
+
+# Environment variables with flexible sourcing
+# Supports multiple types: kv, parameterStore, secret, configmapRef
+env: {}
+  # Example configurations:
+  # CUSTOM_VAR:
+  #   type: kv
+  #   value: "hardcoded-value"
+  # DB_PASSWORD:
+  #   type: parameterStore
+  #   name: db-password
+  #   parameter_name: /discourse/prod/db-password
+  # API_KEY:
+  #   type: secret
+  #   name: discourse-api-keys
+  #   key: api-key
+  # CONFIG_VALUE:
+  #   type: configmapRef
+  #   name: discourse-config
+  #   key: config-value

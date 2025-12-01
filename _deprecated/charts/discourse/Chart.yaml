@@ -1,0 +1,11 @@
+apiVersion: v2
+name: discourse
+description: Helm chart for deploying the Discourse application and dependencies.
+type: application
+version: 0.1.0
+appVersion: "3.6.0-beta0"
+keywords:
+  - discourse
+  - forum
+  - ruby
+  - rails
