@@ -157,6 +157,17 @@ jobs:
             echo "=================================="
             echo "Testing chart: $chart"
             echo "=================================="
+
+              # Pre-run step: execute commands from pre-run.json if present and not empty
+              PRE_RUN_FILE="charts/$chart/pre-run.json"
+              if [ -s "$PRE_RUN_FILE" ]; then
+                echo "Running pre-run commands from $PRE_RUN_FILE..."
+                PRE_RUN_CMDS=$(jq -r '.[]' "$PRE_RUN_FILE")
+                while IFS= read -r cmd; do
+                  echo "> $cmd"
+                  eval "$cmd"
+                done <<< "$PRE_RUN_CMDS"
+              fi
             
             # Use common test-values.yaml file for all charts
             VALUES_FILE="charts/$chart/test-values.yaml"

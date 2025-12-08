@@ -1,0 +1,3 @@
+[
+  "kubectl apply -f charts/validator/crds/tor-controller.yaml"
+]
