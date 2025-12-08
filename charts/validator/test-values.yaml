@@ -1,0 +1,79 @@
+global:
+  logLevel: error
+  resources:
+    requests:
+      memory: 350Mi
+    limits:
+      memory: 500Mi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: karpenter.sh/capacity-type
+            operator: In
+            values:
+            - on-demand
+          - key: techops.services/nodepool
+            operator: In
+            values:
+            - default-public
+
+ghost:
+  service:
+    type: LoadBalancer
+    annotations:
+      external-dns.alpha.kubernetes.io/hostname: ${MUSIG_URL}
+      service.beta.kubernetes.io/aws-load-balancer-internal: "false"
+  ethConfig:
+    ethFrom:
+      existingSecret: ${ETH_KEY_SECRET_NAME}
+      key: "ethFrom"
+    ethKeys:
+      existingSecret: ${ETH_KEY_SECRET_NAME}
+      key: "ethKeyStore"
+    ethPass:
+      existingSecret: ${ETH_KEY_SECRET_NAME}
+      key: "ethPass"
+
+  ethRpcUrl: ${RPC_URL}
+  rpcUrl: ${RPC_URL}
+  liveness:
+    enabled: false
+  readiness:
+    enabled: false
+
+  env:
+    normal:
+      # please place your nodes actual public ip addresse here
+      # CFG_LIBP2P_EXTERNAL_ADDR: "/ip4/#{NODE_ELASTIC_IP}"
+      # please configure this with your feeds onion address
+      CFG_LIBP2P_EXTERNAL_ADDR: /dns/${MUSIG_URL}
+
+vao:
+  resources:
+    requests:
+      memory: 1500Mi
+    limits:
+      memory: 2000Mi
+
+serviceMonitor:
+  # -- If true, a ServiceMonitor CRD is created for a prometheus operator
+  # https://github.com/coreos/prometheus-operator
+  enabled: true
+  # -- Alternative namespace for ServiceMonitor
+  namespace: null
+  # -- Additional ServiceMonitor labels
+  labels: {}
+  # -- Additional ServiceMonitor annotations
+  annotations: {}
+  # -- ServiceMonitor scrape interval
+  interval: 60s
+  # -- ServiceMonitor scheme
+  scheme: http
+  # -- ServiceMonitor TLS configuration
+  tlsConfig: {}
+  # -- ServiceMonitor scrape timeout
+  scrapeTimeout: 60s
+  # -- ServiceMonitor relabelings
+  relabelings: []
