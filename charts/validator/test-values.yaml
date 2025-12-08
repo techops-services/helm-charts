@@ -60,7 +60,7 @@ vao:
 serviceMonitor:
   # -- If true, a ServiceMonitor CRD is created for a prometheus operator
   # https://github.com/coreos/prometheus-operator
-  enabled: true
+  enabled: false
   # -- Alternative namespace for ServiceMonitor
   namespace: null
   # -- Additional ServiceMonitor labels
