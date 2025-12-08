@@ -1,0 +1,12 @@
+apiVersion: v2
+appVersion: 0.66.2
+description: A Helm chart for deploying Chronicle Validator on Kubernetes
+icon: https://avatars.githubusercontent.com/u/87739326
+maintainers:
+- name: WesleyCharlesBlake
+  url: https://github.com/WesleyCharlesBlake/
+- name: chronicleprotocol
+  url: https://github.com/chronicleprotocol
+name: validator
+type: application
+version: 0.4.8
