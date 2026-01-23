@@ -1,0 +1,46 @@
+{{- if .Values.discordbot.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "postmortem-bot.fullname" . }}-discordbot
+  labels:
+    {{- include "postmortem-bot.labels" . | nindent 4 }}
+    app.kubernetes.io/component: discordbot
+spec:
+  replicas: {{ .Values.discordbot.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "postmortem-bot.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: discordbot
+  template:
+    metadata:
+      labels:
+        {{- include "postmortem-bot.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: discordbot
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: discordbot
+          image: "{{ .Values.discordbot.image.repository }}:{{ .Values.discordbot.image.tag }}"
+          imagePullPolicy: {{ .Values.discordbot.image.pullPolicy }}
+          args: ["discordbot"]
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          env:
+            {{- range .Values.discordbot.env }}
+            - name: {{ .name }}
+              {{- if .value }}
+              value: {{ .value | quote }}
+              {{- else if .valueFrom }}
+              valueFrom:
+                {{- toYaml .valueFrom | nindent 16 }}
+              {{- end }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.discordbot.resources | nindent 12 }}
+{{- end }}
