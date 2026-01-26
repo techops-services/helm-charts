@@ -137,6 +137,8 @@ jobs:
         id: helm-tests
         continue-on-error: true
         run: |
+          git branch
+          ls -la charts/postmortem-bot/
           # Create log directory
           mkdir -p /tmp/helm-logs
           
