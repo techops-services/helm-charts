@@ -71,6 +71,13 @@ spec:
             {{- end }}
             {{- end }}
           {{- end }}
+          {{- if .volumeMounts }}
+          volumeMounts:
+            {{- range .volumeMounts }}
+            - name: {{ $fullName }}-{{ .name }}-volume
+              mountPath: {{ .mountPath }}
+            {{- end }}
+          {{- end }}
         {{- end }}
       {{- end }}
       {{- with .Values.imagePullSecrets }}
