@@ -50,6 +50,11 @@ spec:
               - name: {{ $k | quote }}
               {{- if eq $v.type "kv" }}
                 value: {{ $v.value | quote }}
+              {{- else if eq $v.type "secret" }}
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $v.name | quote }}
+                    key: {{ $v.key | quote }}
               {{- else if eq $v.type "parameterStore" }}
                 valueFrom:
                   secretKeyRef:
