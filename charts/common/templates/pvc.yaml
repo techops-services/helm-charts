@@ -1,5 +1,6 @@
 {{- $fullName := include "common.fullname" . -}}
-{{- range $volume := .Values.deployment.volumes | default list }}
+{{- $allVolumes := concat (.Values.deployment.volumes | default list) (.Values.statefulset.volumes | default list) }}
+{{- range $volume := $allVolumes }}
 {{- if and $volume.name (not $volume.emptyDir) (not $volume.configMap) (not $volume.secret) }}
 ---
 apiVersion: v1

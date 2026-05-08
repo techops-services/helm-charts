@@ -1,0 +1,268 @@
+{{- if .Values.statefulset.enabled }}
+{{- $fullName := include "common.fullname" . -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "common.fullname" . }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+    {{- with .Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  serviceName: {{ .Values.statefulset.serviceName | default (include "common.fullname" .) | quote }}
+  podManagementPolicy: {{ .Values.statefulset.podManagementPolicy | default "OrderedReady" }}
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "common.selectorLabels" . | nindent 6 }}
+      {{- with .Values.selectorLabels }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "common.selectorLabels" . | nindent 8 }}
+        {{- with .Values.selectorLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.statefulset.initContainers }}
+      initContainers:
+        {{- range .Values.statefulset.initContainers }}
+        - name: {{ .name }}
+          image: {{ .image }}
+          {{- if .command }}
+          command:
+            {{ toYaml .command | nindent 12 }}
+          {{- end }}
+          {{- if .restartPolicy }}
+          restartPolicy: {{ .restartPolicy }}
+          {{- end }}
+          {{- if .args }}
+          args:
+            {{ toYaml .args | nindent 12 }}
+          {{- end }}
+          {{- if .env }}
+          env:
+            {{- range $k, $v := .env }}
+            - name: {{ $k | quote }}
+            {{- if eq $v.type "kv" }}
+              value: {{ $v.value | quote }}
+            {{- else if eq $v.type "parameterStore" }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ $fullName }}-{{ $v.name }}"
+                  key: "{{ $fullName }}-{{ $v.name }}"
+            {{- else if eq $v.type "configmapRef" }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+            {{- else if eq $v.type "secret" }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if .volumeMounts }}
+          volumeMounts:
+            {{- range .volumeMounts }}
+            - name: {{ $fullName }}-{{ .name }}-volume
+              mountPath: {{ .mountPath }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.serviceAccount.name }}
+      serviceAccountName: {{ include "common.serviceAccountName" . }}
+      {{- end }}
+      {{- if .Values.statefulset.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.statefulset.terminationGracePeriodSeconds }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.statefulset.volumes }}
+      volumes:
+        {{- range $volume := .Values.statefulset.volumes }}
+        - name: {{ $fullName }}-{{ $volume.name }}-volume
+          {{- if $volume.emptyDir }}
+          emptyDir:
+            {{- if $volume.emptyDir.sizeLimit }}
+            sizeLimit: {{ $volume.emptyDir.sizeLimit }}
+            {{- end }}
+          {{- else if $volume.configMap }}
+          configMap:
+            name: {{ $volume.configMap.name }}
+            {{- if $volume.configMap.items }}
+            items:
+              {{- range $item := $volume.configMap.items }}
+              - key: {{ $item.key }}
+                path: {{ $item.path }}
+              {{- end }}
+            {{- end }}
+          {{- else if $volume.secret }}
+          secret:
+            secretName: {{ $volume.secret.secretName }}
+            {{- if $volume.secret.items }}
+            items:
+              {{- range $item := $volume.secret.items }}
+              - key: {{ $item.key }}
+                path: {{ $item.path }}
+              {{- end }}
+            {{- end }}
+          {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ $fullName }}-{{ $volume.name }}-pvc
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ include "common.fullname" . }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- if .Values.statefulset.lifecycle }}
+          lifecycle:
+            {{- toYaml .Values.statefulset.lifecycle | nindent 12 }}
+          {{- end }}
+          {{- if .Values.statefulset.volumes }}
+          volumeMounts:
+            {{- range $volume := .Values.statefulset.volumes }}
+            - name: {{ $fullName }}-{{ $volume.name }}-volume
+              mountPath: {{ $volume.mountPath }}
+              {{- if or $volume.configMap $volume.secret }}
+              readOnly: true
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if .Values.command }}
+          command:
+            {{ toYaml .Values.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.args }}
+          args:
+            {{ toYaml .Values.args | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.service.containerPort }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.containerPort }}
+              protocol: TCP
+          {{- else if .Values.statefulset.ports }}
+          ports:
+            {{- range .Values.statefulset.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort }}
+              protocol: {{ .protocol }}
+            {{- end }}
+          {{- end }}
+          env:
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k | quote }}
+            {{- if eq $v.type "kv" }}
+              value: {{ $v.value | quote }}
+            {{- else if eq $v.type "parameterStore" }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ $fullName }}-{{ $v.name }}"
+                  key: "{{ $fullName }}-{{ $v.name }}"
+            {{- else if eq $v.type "configmapRef" }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+            {{- else if eq $v.type "secret" }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+            {{- end }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+        {{- if .Values.sidecars }}
+        {{- range .Values.sidecars }}
+        - name: {{ .name }}
+          image: "{{ .image.repository }}:{{ .image.tag }}"
+          {{- if .volumeMounts }}
+          volumeMounts:
+            {{- range .volumeMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+            {{- end }}
+          {{- end }}
+          {{- if .ports }}
+          ports:
+            {{- range .ports }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort }}
+              protocol: {{ .protocol | default "TCP" }}
+            {{- end }}
+          {{- end }}
+          {{- if .args }}
+          args:
+            {{- toYaml .args | nindent 12 }}
+          {{- end }}
+          {{- if .env }}
+          env:
+            {{- range $k, $v := .env }}
+            - name: {{ $k | quote }}
+              {{- if eq $v.type "kv" }}
+              value: {{ $v.value | quote }}
+              {{- else if eq $v.type "parameterStore" }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ $fullName }}-{{ $v.name }}"
+                  key: "{{ $fullName }}-{{ $v.name }}"
+              {{- else if eq $v.type "configmapRef" }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+              {{- else if eq $v.type "secret" }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $v.name | quote }}
+                  key: {{ $v.key | quote }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if .resources }}
+          resources:
+            {{- toYaml .resources | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
