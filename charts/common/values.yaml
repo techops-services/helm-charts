@@ -104,6 +104,36 @@ deployment:
 #        requests:
 #          storage: 4Gi
 
+# StatefulSet — alternative to `deployment` for stateful single-replica or
+# replica-pinned workloads (per-pod stable network ID, strict serial pod
+# replacement, optional per-replica volumes via volumeClaimTemplates in a
+# future iteration). Mutually exclusive with `deployment.enabled` — only
+# one of the two should be true.
+#
+# Volumes use the same shape as `deployment.volumes` and are realised via
+# the chart's existing pvc.yaml / storageclass.yaml templates (one PVC per
+# release, NOT per replica). Use this mode when migrating an existing
+# Deployment+PVC pair to a StatefulSet without re-provisioning storage.
+statefulset:
+  enabled: false
+  # Headless Service to back the StatefulSet's stable network identity.
+  # Defaults to the chart's fullname if unset.
+  serviceName: ""
+  # OrderedReady (default) — pods come up sequentially, terminate in reverse.
+  # Parallel — all pods at once (rare; useful when ordering doesn't matter).
+  podManagementPolicy: OrderedReady
+  terminationGracePeriodSeconds: 60
+  # Container lifecycle hooks (e.g., preStop sleep so kubelet finishes
+  # unmount before the controller starts attach on the new pod).
+  lifecycle: {}
+  #   preStop:
+  #     exec:
+  #       command: ["sh", "-c", "sleep 5"]
+  initContainers: []
+  ports: []
+  volumes: []
+  # Same shape as deployment.volumes — see above for examples.
+
 cronjob:
   enabled: false
   jobs: []
