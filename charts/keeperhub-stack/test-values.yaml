@@ -1,0 +1,59 @@
+# Test values for keeperhub-stack (CI: helm template + dry-run install).
+#
+# Uses a public image for every component so the dry-run renders without
+# pulling private ECR images or touching external dependencies. Mirrors the
+# real shape (one aliased `common` instance per component) so template parity
+# is exercised.
+app:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: nginx
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  deployment:
+    enabled: true
+  service:
+    enabled: true
+    port: 3000
+    containerPort: 3000
+
+executor:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: nginx
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  deployment:
+    enabled: true
+
+schedule:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: nginx
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  deployment:
+    enabled: true
+
+block:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: nginx
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  deployment:
+    enabled: true
+
+metricsCollector:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: nginx
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  deployment:
+    enabled: true

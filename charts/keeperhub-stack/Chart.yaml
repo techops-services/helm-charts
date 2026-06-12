@@ -1,0 +1,48 @@
+apiVersion: v2
+name: keeperhub-stack
+description: >-
+  Umbrella chart that deploys the KeeperHub execution pipeline (app, executor,
+  schedule + block dispatchers, metrics collector) as a single atomic Helm
+  release. It wraps the `common` chart once per component via aliased
+  dependencies so that `helm upgrade --install --atomic --wait` rolls the whole
+  stack together and rolls all of it back if any component fails to become
+  ready. This avoids the staggered, per-release rollovers that can orphan
+  in-flight workflow executions during a deploy.
+type: application
+
+# Bump on every change to this chart or its rendered output.
+version: 0.1.0
+
+# Tracks the KeeperHub application generation this stack targets.
+appVersion: "1.0.0"
+
+# Each component is a separate instance of the `common` chart, aliased so the
+# rendered resources are named <release>-<alias> (keeperhub-app,
+# keeperhub-executor, ...). `condition` lets a consumer turn a component off
+# without removing the dependency.
+dependencies:
+  - name: common
+    version: "0.3.0"
+    repository: "file://../common"
+    alias: app
+    condition: app.enabled
+  - name: common
+    version: "0.3.0"
+    repository: "file://../common"
+    alias: executor
+    condition: executor.enabled
+  - name: common
+    version: "0.3.0"
+    repository: "file://../common"
+    alias: schedule
+    condition: schedule.enabled
+  - name: common
+    version: "0.3.0"
+    repository: "file://../common"
+    alias: block
+    condition: block.enabled
+  - name: common
+    version: "0.3.0"
+    repository: "file://../common"
+    alias: metricsCollector
+    condition: metricsCollector.enabled

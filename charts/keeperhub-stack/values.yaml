@@ -1,0 +1,135 @@
+# Default values for keeperhub-stack.
+#
+# Every top-level key below maps to one aliased instance of the `common` chart
+# (see Chart.yaml dependencies). The keys under each alias are passed straight
+# through to that `common` subchart, so anything `common` supports (deployment,
+# service, env, externalSecrets, autoscaling, resources, nodeSelector, ...) is
+# set here under the matching component.
+#
+# Images, env vars and secrets are intentionally placeholders. The real
+# per-environment values (ECR image tags, SSM-backed secrets, replica counts)
+# are supplied at deploy time with `-f <env>/values.yaml` from the keeperhub
+# repo, the same way the standalone releases work today.
+#
+# Deploy the whole stack atomically:
+#   helm dependency build charts/keeperhub-stack
+#   helm upgrade --install keeperhub charts/keeperhub-stack \
+#     -f keeperhub/deploy/keeperhub/<env>/values.yaml \
+#     --atomic --wait --timeout 15m
+# On any component failing its readiness check within the timeout, the entire
+# release (all components) is rolled back to the previous revision.
+#
+# Note: `common`'s bundled service.yaml, certificate.yaml and test-connection
+# templates dereference .Values.service(.tls.enabled/.port), so every component
+# carries a full `service` block even when it runs no HTTP server.
+
+# ---------------------------------------------------------------------------
+# app - the Next.js application (runs DB migrations via its db-migration
+# initContainer). Successor to the standalone `keeperhub-common` release.
+# ---------------------------------------------------------------------------
+app:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: keeperhub-app
+    tag: latest
+    pullPolicy: Always
+  deployment:
+    enabled: true
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 3000
+    containerPort: 3000
+    tls:
+      enabled: false
+  env: {}
+
+# ---------------------------------------------------------------------------
+# executor - SQS consumer that POSTs /api/workflow/:id/execute.
+# Successor to `keeperhub-executor-common`.
+# ---------------------------------------------------------------------------
+executor:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: keeperhub-executor
+    tag: latest
+    pullPolicy: Always
+  deployment:
+    enabled: true
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 3080
+    containerPort: 3080
+    tls:
+      enabled: false
+  env: {}
+
+# ---------------------------------------------------------------------------
+# schedule - cron schedule dispatcher. Successor to `keeperhub-schedule-common`.
+# Runs no HTTP server; the service block exists only to satisfy common's
+# bundled service/certificate/test templates.
+# ---------------------------------------------------------------------------
+schedule:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: keeperhub-scheduler
+    tag: latest
+    pullPolicy: Always
+  deployment:
+    enabled: true
+  service:
+    enabled: false
+    type: ClusterIP
+    port: 80
+    tls:
+      enabled: false
+  env: {}
+
+# ---------------------------------------------------------------------------
+# block - block dispatcher (WSS to EVM nodes). Successor to
+# `keeperhub-block-common`.
+# ---------------------------------------------------------------------------
+block:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: keeperhub-scheduler
+    tag: latest
+    pullPolicy: Always
+  deployment:
+    enabled: true
+  service:
+    enabled: false
+    type: ClusterIP
+    port: 80
+    tls:
+      enabled: false
+  env: {}
+
+# ---------------------------------------------------------------------------
+# metricsCollector - periodic metrics collector. Successor to
+# `keeperhub-metrics-collector-common`.
+# ---------------------------------------------------------------------------
+metricsCollector:
+  enabled: true
+  # Alias is camelCase for clean values access; override the rendered name so
+  # the k8s resources are RFC1123-valid (lowercase) -> keeperhub-metrics-collector.
+  nameOverride: metrics-collector
+  replicaCount: 1
+  image:
+    repository: keeperhub-metrics-collector
+    tag: latest
+    pullPolicy: Always
+  deployment:
+    enabled: true
+  service:
+    enabled: false
+    type: ClusterIP
+    port: 80
+    tls:
+      enabled: false
+  env: {}
