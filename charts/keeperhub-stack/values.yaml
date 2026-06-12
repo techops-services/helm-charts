@@ -83,6 +83,7 @@ schedule:
     enabled: true
   service:
     enabled: false
+    type: ClusterIP
     port: 80
     tls:
       enabled: false
@@ -103,6 +104,7 @@ block:
     enabled: true
   service:
     enabled: false
+    type: ClusterIP
     port: 80
     tls:
       enabled: false
@@ -126,6 +128,7 @@ metricsCollector:
     enabled: true
   service:
     enabled: false
+    type: ClusterIP
     port: 80
     tls:
       enabled: false
