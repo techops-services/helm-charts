@@ -1,0 +1,12 @@
+# Patterns to ignore when building packages.
+.DS_Store
+.git/
+.gitignore
+*.tmproj
+*.bak
+*.orig
+*~
+.vscode/
+.idea/
+# Keep vendored subchart archives (charts/*.tgz) - they are the resolved
+# `common` dependency and must ship inside the package.

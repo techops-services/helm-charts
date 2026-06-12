@@ -1,0 +1,18 @@
+KeeperHub stack "{{ .Release.Name }}" deployed to namespace "{{ .Release.Namespace }}".
+
+Components in this release (one aliased `common` instance each):
+{{- range $c := (list "app" "executor" "schedule" "block" "metricsCollector") }}
+{{- $v := index $.Values $c }}
+  - {{ $c }}: {{ if and $v $v.enabled }}enabled{{ else }}disabled{{ end }}
+{{- end }}
+
+This stack is meant to be deployed atomically. Roll the whole thing together
+and roll all of it back if any component fails its readiness check:
+
+  helm upgrade --install {{ .Release.Name }} charts/keeperhub-stack \
+    -f keeperhub/deploy/keeperhub/<env>/values.yaml \
+    --namespace {{ .Release.Namespace }} \
+    --atomic --wait --timeout 15m
+
+Check rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ .Release.Name }}-app
