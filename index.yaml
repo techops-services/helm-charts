@@ -1154,6 +1154,49 @@ entries:
     urls:
     - https://github.com/techops-services/helm-charts/releases/download/graphprotocol-node-0.1.1/graphprotocol-node-0.1.1.tgz
     version: 0.1.1
+  keeperhub-stack:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2026-06-12T16:35:19.493744021Z"
+    dependencies:
+    - alias: app
+      condition: app.enabled
+      name: common
+      repository: file://../common
+      version: 0.3.0
+    - alias: executor
+      condition: executor.enabled
+      name: common
+      repository: file://../common
+      version: 0.3.0
+    - alias: schedule
+      condition: schedule.enabled
+      name: common
+      repository: file://../common
+      version: 0.3.0
+    - alias: block
+      condition: block.enabled
+      name: common
+      repository: file://../common
+      version: 0.3.0
+    - alias: metricsCollector
+      condition: metricsCollector.enabled
+      name: common
+      repository: file://../common
+      version: 0.3.0
+    description: Umbrella chart that deploys the KeeperHub execution pipeline (app,
+      executor, schedule + block dispatchers, metrics collector) as a single atomic
+      Helm release. It wraps the `common` chart once per component via aliased dependencies
+      so that `helm upgrade --install --atomic --wait` rolls the whole stack together
+      and rolls all of it back if any component fails to become ready. This avoids
+      the staggered, per-release rollovers that can orphan in-flight workflow executions
+      during a deploy.
+    digest: 166bc30de2c0547b9b9860cb1ff66499ecaed7ad3308506184daf00fc27e7cdc
+    name: keeperhub-stack
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/keeperhub-stack-0.1.0/keeperhub-stack-0.1.0.tgz
+    version: 0.1.0
   polymesh:
   - apiVersion: v2
     appVersion: 4.1.1
@@ -1226,4 +1269,4 @@ entries:
     urls:
     - https://github.com/techops-services/helm-charts/releases/download/valkey-1.0.0/valkey-1.0.0.tgz
     version: 1.0.0
-generated: "2026-05-08T03:13:31.779033348Z"
+generated: "2026-06-12T16:35:19.493895833Z"
