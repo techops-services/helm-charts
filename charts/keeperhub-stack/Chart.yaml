@@ -11,7 +11,7 @@ description: >-
 type: application
 
 # Bump on every change to this chart or its rendered output.
-version: 0.1.0
+version: 0.2.0
 
 # Tracks the KeeperHub application generation this stack targets.
 appVersion: "1.0.0"
@@ -22,27 +22,27 @@ appVersion: "1.0.0"
 # without removing the dependency.
 dependencies:
   - name: common
-    version: "0.3.0"
+    version: "0.4.0"
     repository: "file://../common"
     alias: app
     condition: app.enabled
   - name: common
-    version: "0.3.0"
+    version: "0.4.0"
     repository: "file://../common"
     alias: executor
     condition: executor.enabled
   - name: common
-    version: "0.3.0"
+    version: "0.4.0"
     repository: "file://../common"
     alias: schedule
     condition: schedule.enabled
   - name: common
-    version: "0.3.0"
+    version: "0.4.0"
     repository: "file://../common"
     alias: block
     condition: block.enabled
   - name: common
-    version: "0.3.0"
+    version: "0.4.0"
     repository: "file://../common"
     alias: metricsCollector
     condition: metricsCollector.enabled
