@@ -252,6 +252,20 @@ serviceAccount:
   irsaCheck:
     enabled: false
     image: amazon/aws-cli
+    # Opt-in hard gate: an init container that proves IRSA works (assume-role +
+    # a read-only AWS call) before the main container starts. If it fails the pod
+    # never becomes Ready, so `helm upgrade --atomic --wait` rolls the release
+    # back instead of shipping a credential-less workload. Reuses irsaCheck.image.
+    # Independent of serviceAccount.create - gated only on initContainer.enabled.
+    initContainer:
+      enabled: false
+      # region + queueName drive the current read-only SQS probe
+      # (aws sqs get-queue-url). Kept AWS-service-agnostic so other read-only
+      # probes can be added later without renaming the key.
+      region: ""
+      queueName: ""
+      # Optional override; a small default is applied in the template when empty.
+      resources: {}
   rules: []
 #    - apiGroups: ["batch"]
 #      resources: ["jobs"]

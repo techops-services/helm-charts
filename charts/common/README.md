@@ -28,7 +28,28 @@ so existing consumers are unaffected.
 
 `serviceAccount.irsaCheck.enabled: true` additionally renders a `helm test` pod that runs
 `aws sts get-caller-identity` under the ServiceAccount, validating IRSA end-to-end (run with
-`helm test`).
+`helm test`). That is a post-deploy sanity check - it runs after the release already succeeded.
+
+`serviceAccount.irsaCheck.initContainer.enabled: true` is the matching hard gate: it injects an
+`irsa-preflight` init container into the Deployment/StatefulSet that assumes the IRSA role and
+runs a read-only AWS probe (`aws sts get-caller-identity` plus `aws sqs get-queue-url`) before
+the main container starts. If the probe fails the pod never becomes Ready, so
+`helm upgrade --atomic --wait` rolls the release back instead of running a credential-less
+workload. It reuses `irsaCheck.image`, is independent of `serviceAccount.create`, and is gated
+only on `initContainer.enabled`:
+
+```
+serviceAccount:
+  name: my-irsa-sa
+  irsaCheck:
+    initContainer:
+      enabled: true
+      region: us-east-1
+      queueName: my-workflow-queue
+```
+
+The SQS `get-queue-url` call is the read-only probe today; the key is kept AWS-service-agnostic so
+other read-only checks can be added later without renaming it.
 
 ## Regarding HTTP basic auth
 

@@ -33,8 +33,11 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- if .Values.statefulset.initContainers }}
+      {{- if or .Values.serviceAccount.irsaCheck.initContainer.enabled .Values.statefulset.initContainers }}
       initContainers:
+        {{- if .Values.serviceAccount.irsaCheck.initContainer.enabled }}
+        {{- include "common.irsaPreflightInitContainer" . | nindent 8 }}
+        {{- end }}
         {{- range .Values.statefulset.initContainers }}
         - name: {{ .name }}
           image: {{ .image }}

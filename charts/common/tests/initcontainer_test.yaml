@@ -1,0 +1,110 @@
+suite: IRSA preflight init container hard gate
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: renders no initContainers when the preflight is disabled and no user init containers exist
+    set:
+      service:
+        port: 3000
+        containerPort: 3000
+      deployment:
+        enabled: true
+        initContainers: []
+      serviceAccount:
+        name: keeperhub-staging
+    asserts:
+      - isKind:
+          of: Deployment
+      - notExists:
+          path: spec.template.spec.initContainers
+
+  - it: renders the irsa-preflight init container when enabled
+    set:
+      service:
+        port: 3000
+        containerPort: 3000
+      deployment:
+        enabled: true
+        initContainers: []
+      serviceAccount:
+        name: keeperhub-staging
+        irsaCheck:
+          image: amazon/aws-cli
+          initContainer:
+            enabled: true
+            region: us-east-1
+            queueName: keeperhub-workflow-queue-staging
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: irsa-preflight
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: amazon/aws-cli
+      - equal:
+          path: spec.template.spec.initContainers[0].env[0].name
+          value: IRSA_PREFLIGHT_REGION
+      - equal:
+          path: spec.template.spec.initContainers[0].env[0].value
+          value: us-east-1
+      - equal:
+          path: spec.template.spec.initContainers[0].env[1].name
+          value: IRSA_PREFLIGHT_QUEUE_NAME
+      - equal:
+          path: spec.template.spec.initContainers[0].env[1].value
+          value: keeperhub-workflow-queue-staging
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].args[0]
+          pattern: "aws sqs get-queue-url"
+
+  - it: applies the default resources when none are overridden
+    set:
+      service:
+        port: 3000
+        containerPort: 3000
+      deployment:
+        enabled: true
+      serviceAccount:
+        name: keeperhub-staging
+        irsaCheck:
+          initContainer:
+            enabled: true
+            region: us-east-1
+            queueName: keeperhub-workflow-queue-staging
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].resources.requests.cpu
+          value: 25m
+      - equal:
+          path: spec.template.spec.initContainers[0].resources.limits.memory
+          value: 128Mi
+
+  - it: renders the preflight before user-supplied init containers in a single block
+    set:
+      service:
+        port: 3000
+        containerPort: 3000
+      deployment:
+        enabled: true
+        initContainers:
+          - name: db-migration
+            image: keeperhub-app:latest
+            command: ["pnpm"]
+            args: ["db:migrate"]
+      serviceAccount:
+        name: keeperhub-staging
+        irsaCheck:
+          initContainer:
+            enabled: true
+            region: us-east-1
+            queueName: keeperhub-workflow-queue-staging
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: irsa-preflight
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: db-migration

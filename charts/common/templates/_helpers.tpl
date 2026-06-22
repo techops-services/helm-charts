@@ -57,3 +57,39 @@ Create the name of the service account to use
 {{- define "common.serviceAccountName" -}}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
+
+{{/*
+IRSA preflight init container - hard gate that proves IRSA works (assume-role +
+a read-only AWS call) before the main container starts. Rendered as a single
+initContainers list entry; include with `nindent 8`. The SQS get-queue-url probe
+is the only truly read-only call within the role's queue policy.
+*/}}
+{{- define "common.irsaPreflightInitContainer" -}}
+{{- $ic := .Values.serviceAccount.irsaCheck.initContainer -}}
+- name: irsa-preflight
+  image: {{ .Values.serviceAccount.irsaCheck.image }}
+  command: ["/bin/sh", "-c"]
+  args:
+    - |
+      set -euo pipefail
+      echo "[irsa-preflight] sts get-caller-identity"
+      aws sts get-caller-identity
+      echo "[irsa-preflight] sqs get-queue-url ${IRSA_PREFLIGHT_QUEUE_NAME}"
+      aws sqs get-queue-url --queue-name "${IRSA_PREFLIGHT_QUEUE_NAME}" --region "${IRSA_PREFLIGHT_REGION}"
+  env:
+    - name: IRSA_PREFLIGHT_REGION
+      value: {{ $ic.region | quote }}
+    - name: IRSA_PREFLIGHT_QUEUE_NAME
+      value: {{ $ic.queueName | quote }}
+  resources:
+    {{- if $ic.resources }}
+    {{- toYaml $ic.resources | nindent 4 }}
+    {{- else }}
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    {{- end }}
+{{- end }}
