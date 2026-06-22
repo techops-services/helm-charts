@@ -3,6 +3,17 @@ entries:
   common:
   - apiVersion: v2
     appVersion: 0.0.37
+    created: "2026-06-22T12:04:18.294386245Z"
+    description: A Helm chart for Kubernetes
+    digest: 95a5a61c325c79d9bae1adb5e57a99a3ccfb178f89e429670446ab841c302c1e
+    icon: https://cncf-branding.netlify.app/img/projects/helm/horizontal/color/helm-horizontal-color.png
+    name: common
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/common-0.4.0/common-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
+    appVersion: 0.0.37
     created: "2026-05-08T03:13:31.778787997Z"
     description: A Helm chart for Kubernetes
     digest: 28ce5d1d939b45e18c0501e790ba7e8baf39648e6f1a070c76abcddf2066643b
@@ -1157,6 +1168,48 @@ entries:
   keeperhub-stack:
   - apiVersion: v2
     appVersion: 1.0.0
+    created: "2026-06-22T12:04:18.488261392Z"
+    dependencies:
+    - alias: app
+      condition: app.enabled
+      name: common
+      repository: file://../common
+      version: 0.4.0
+    - alias: executor
+      condition: executor.enabled
+      name: common
+      repository: file://../common
+      version: 0.4.0
+    - alias: schedule
+      condition: schedule.enabled
+      name: common
+      repository: file://../common
+      version: 0.4.0
+    - alias: block
+      condition: block.enabled
+      name: common
+      repository: file://../common
+      version: 0.4.0
+    - alias: metricsCollector
+      condition: metricsCollector.enabled
+      name: common
+      repository: file://../common
+      version: 0.4.0
+    description: Umbrella chart that deploys the KeeperHub execution pipeline (app,
+      executor, schedule + block dispatchers, metrics collector) as a single atomic
+      Helm release. It wraps the `common` chart once per component via aliased dependencies
+      so that `helm upgrade --install --atomic --wait` rolls the whole stack together
+      and rolls all of it back if any component fails to become ready. This avoids
+      the staggered, per-release rollovers that can orphan in-flight workflow executions
+      during a deploy.
+    digest: c836e5ecc38b936bad437620cfcfcdf9112c50053ccaf4174291153de6699a29
+    name: keeperhub-stack
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/keeperhub-stack-0.2.0/keeperhub-stack-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: 1.0.0
     created: "2026-06-12T16:35:19.493744021Z"
     dependencies:
     - alias: app
@@ -1269,4 +1322,4 @@ entries:
     urls:
     - https://github.com/techops-services/helm-charts/releases/download/valkey-1.0.0/valkey-1.0.0.tgz
     version: 1.0.0
-generated: "2026-06-12T16:35:19.493895833Z"
+generated: "2026-06-22T12:04:18.488419971Z"
