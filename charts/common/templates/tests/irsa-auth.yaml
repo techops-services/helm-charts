@@ -1,0 +1,18 @@
+{{- if .Values.serviceAccount.irsaCheck.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "common.fullname" . }}-test-irsa-auth"
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  serviceAccountName: {{ include "common.serviceAccountName" . }}
+  containers:
+    - name: sts-get-caller-identity
+      image: {{ .Values.serviceAccount.irsaCheck.image }}
+      command: ['aws']
+      args: ['sts', 'get-caller-identity']
+  restartPolicy: Never
+{{- end }}

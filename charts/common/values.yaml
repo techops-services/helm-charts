@@ -241,8 +241,17 @@ readinessProbe: {}
 
 serviceAccount:
   create: false
+  # When true, the render fails if eks.amazonaws.com/role-arn is empty or not a
+  # well-formed IAM role ARN, so helm upgrade aborts instead of shipping a
+  # credential-less workload. Only enforced when create is true. Default false.
+  requireRoleArn: false
   annotations:
     # eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/name
+  # Opt-in helm test that confirms the service account can actually authenticate
+  # to AWS via IRSA (aws sts get-caller-identity). Run with `helm test`.
+  irsaCheck:
+    enabled: false
+    image: amazon/aws-cli
   rules: []
 #    - apiGroups: ["batch"]
 #      resources: ["jobs"]

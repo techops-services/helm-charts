@@ -126,6 +126,24 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v3
+        with:
+          version: v3.18.4
+
+      - name: Install helm-unittest plugin
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest
+
+      - name: Run helm unittest for changed charts
+        run: |
+          IFS=',' read -ra CHARTS <<< "${{ needs.detect-changes.outputs.changed-charts }}"
+          for chart in "${CHARTS[@]}"; do
+            if [ -d "charts/$chart/tests" ]; then
+              echo "::group::helm unittest: $chart"
+              helm unittest "charts/$chart"
+              echo "::endgroup::"
+            else
+              echo "No unittest suite for $chart, skipping"
+            fi
+          done
 
       - name: Wait for Minikube to be ready
         run: |
