@@ -299,6 +299,14 @@ httpBasicAuth:
   enabled: false
 #  usersList: user1:hashed_pasword1,user2:hashed_password2
 
+# Opt-in PodDisruptionBudget so voluntary disruptions (e.g. node drains)
+# respect a pod-availability floor. minAvailable and maxUnavailable are
+# mutually exclusive; set exactly one.
+podDisruptionBudget:
+  enabled: false
+  # minAvailable: 1
+  # maxUnavailable: 1
+
 resources:
   {}
 
