@@ -63,3 +63,91 @@ metricsCollector:
   triggers before termination) to fully eliminate orphaned executions.
 - CronJobs (reaper, execution digest) are not gated by `--wait`; add them as
   further aliases if you want them in the same release.
+
+## Optional bundled data plane
+
+A self-hosted install can let the chart run its own PostgreSQL and queue rather
+than requiring an operator to bring both. Both default to `false`, so nothing
+changes for environments that already supply them, which includes staging and
+production.
+
+```yaml
+postgresql:
+  bundled: true
+  instances: 3                       # HA; needs that many schedulable nodes
+  credentialsSecret: keeperhub-db    # kubernetes.io/basic-auth
+queue:
+  bundled: true
+  persistence:
+    enabled: true
+```
+
+High availability, failover, backup and restore for the database are
+CloudNativePG's, not this chart's: `postgresql.backup` and `postgresql.recovery`
+are passed through to the operator verbatim.
+
+### These are templates, not dependencies
+
+Deliberately, and it should stay that way.
+
+Helm fails chart load when a `dependencies:` entry has no matching archive under
+`charts/`, and it decides that by dependency **name** without ever reading
+`condition`. So a dependency that is disabled by default would still have to be
+vendored as a committed `.tgz` — and this repo's CI has no
+`helm dependency build` step, which is also why `common` is vendored today. A
+second hand-maintained binary in git, for something off by default, is a poor
+trade against two template files.
+
+CloudNativePG could not be a subchart in any case. Its CRDs are cluster-scoped,
+and CRDs cannot be installed reliably by a condition-gated subchart inside a
+single `--atomic` release.
+
+### CloudNativePG is a prerequisite
+
+The operator must already be installed cluster-wide; this chart renders only the
+`Cluster` object.
+
+```sh
+kubectl apply --server-side -f \
+  https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.24/releases/cnpg-1.24.1.yaml
+```
+
+Rendering is not gated on `.Capabilities.APIVersions`, because that is false
+under `helm template` and the enabled path would then silently render nothing
+and prove nothing in CI. Check for the CRD before installing instead.
+
+### Pinning the endpoints
+
+`common` renders env values without `tpl`, so a values file cannot compute a
+hostname — `{{ .Release.Name }}-postgres` would ship literally. The endpoints
+are therefore pinned literals in the consuming values file, and this chart
+verifies them at render time via `strictEndpointCheck`. `helm install` prints
+the exact strings to use.
+
+Both mismatches are worth guarding because neither looks like a failure:
+
+- A wrong **queue** URL still works at the transport layer, because ElasticMQ
+  resolves the queue from the last path segment and ignores the host. The URL is
+  an HMAC signing input, so every message then fails verification and is
+  dropped while all pods stay healthy.
+- A wrong **database** host still resolves, but the application forces
+  `sslmode=verify-full` on any host not ending `.svc.cluster.local`, which then
+  fails TLS against CloudNativePG's in-cluster certificate. Note this rules out
+  CNPG's own generated `uri` and `fqdn-uri` Secret keys — compose the connection
+  string with the full `<cluster>-rw.<namespace>.svc.cluster.local` form.
+
+### Queue characteristics
+
+ElasticMQ has no clustering, so the queue is single-node by design: a restart is
+a brief outage, not a failover. `replicas` is deliberately not configurable — a
+second replica would be a second independent queue that silently splits
+messages.
+
+Persistence is on by default so that outage is not also data loss. Verified on
+`elasticmq-native:1.6.16`: the native image persists messages, `DeleteMessage`
+is persisted so processed work is not redelivered after a restart, and the H2
+lock released cleanly across 13 consecutive restarts with the grace period and
+`preStop` this chart sets.
+
+One behaviour to know: `PurgeQueue` is **not** persisted, so purged messages
+reappear after a restart. Nothing in the application calls it — only tests do.

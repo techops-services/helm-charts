@@ -6,6 +6,30 @@ Components in this release (one aliased `common` instance each):
   - {{ $c }}: {{ if and $v $v.enabled }}enabled{{ else }}disabled{{ end }}
 {{- end }}
 
+Optional bundled data plane:
+{{- if .Values.postgresql.bundled }}
+  - postgres: enabled (CloudNativePG, {{ .Values.postgresql.instances }} instance(s))
+      DATABASE_URL host must be:
+        {{ include "keeperhub-stack.pgHost" . }}
+      Use that fully qualified form. Shorter hostnames, including CNPG's own
+      generated uri/fqdn-uri Secret keys, get sslmode=verify-full forced on them
+      and fail TLS against the in-cluster certificate.
+{{- else }}
+  - postgres: not bundled - point DATABASE_URL at your own
+{{- end }}
+{{- if .Values.queue.bundled }}
+  - queue: enabled (ElasticMQ, single node{{ if .Values.queue.persistence.enabled }}, persistent{{ else }}, IN-MEMORY - a restart loses in-flight messages{{ end }})
+      AWS_ENDPOINT_URL must be:
+        {{ include "keeperhub-stack.queueEndpoint" . }}
+{{- range .Values.queue.queues }}
+        {{ include "keeperhub-stack.queueEndpoint" $ }}/{{ $.Values.queue.accountId }}/{{ .name }}
+{{- end }}
+      These strings are HMAC signing inputs and must match byte for byte
+      everywhere they appear.
+{{- else }}
+  - queue: not bundled - point AWS_ENDPOINT_URL/SQS_QUEUE_URL at your own
+{{- end }}
+
 This stack is meant to be deployed atomically. Roll the whole thing together
 and roll all of it back if any component fails its readiness check:
 

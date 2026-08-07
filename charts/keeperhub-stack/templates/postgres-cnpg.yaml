@@ -1,0 +1,123 @@
+{{- if .Values.postgresql.bundled }}
+{{/*
+PostgreSQL for a self-hosted install, as a CloudNativePG Cluster.
+
+The CloudNativePG OPERATOR is a prerequisite and is not installed by this chart.
+Its CRDs are cluster-scoped, and CRDs cannot be installed reliably by a
+condition-gated subchart inside a single --atomic release. So the operator is
+documented as a prerequisite and this template contributes only the Cluster.
+
+That also means high availability, failover, backup and restore are inherited
+from CNPG rather than reimplemented here: instances > 1 gives a real primary
+with automatic failover behind the -rw Service, and .Values.postgresql.backup is
+passed straight through to the operator.
+
+Deliberately NOT rendered conditionally on .Capabilities.APIVersions - that is
+false under `helm template`, so the enabled path would silently render nothing
+and CI would prove nothing. Whether the CRD is present is checked by the
+installer before it runs helm.
+*/}}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "keeperhub-stack.pgName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keeperhub-stack.pgLabels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.postgresql.keepOnDelete }}
+    # Without this, a failed first install rolls back, helm uninstalls the
+    # Cluster, and CNPG garbage-collects the PVCs with it - so the retry starts
+    # from an empty database. Keeping the object means a retry reattaches.
+    helm.sh/resource-policy: keep
+    {{- end }}
+    {{- with .Values.postgresql.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  instances: {{ .Values.postgresql.instances }}
+  imageName: {{ .Values.postgresql.imageName }}
+
+  {{- with .Values.postgresql.primaryUpdateStrategy }}
+  primaryUpdateStrategy: {{ . }}
+  {{- end }}
+
+  bootstrap:
+    {{- if .Values.postgresql.recovery }}
+    # Restoring rather than initialising. Passed through to CNPG verbatim.
+    recovery:
+      {{- toYaml .Values.postgresql.recovery | nindent 6 }}
+    {{- else }}
+    initdb:
+      database: {{ .Values.postgresql.database }}
+      owner: {{ .Values.postgresql.owner }}
+      {{- if .Values.postgresql.credentialsSecret }}
+      # Supplied rather than generated, so the password is stable across helm
+      # rollbacks and can be composed into a connection string by the installer.
+      secret:
+        name: {{ .Values.postgresql.credentialsSecret }}
+      {{- end }}
+      postInitApplicationSQL:
+        # drizzle-kit creates its own `drizzle` schema during migration, so the
+        # owner needs rights beyond the default. On PG15+ the public schema is
+        # owned by pg_database_owner and is not writable by a plain owner, which
+        # is why the ownership line is here as well as the grants.
+        - ALTER SCHEMA public OWNER TO {{ .Values.postgresql.owner }}
+        - GRANT ALL ON SCHEMA public TO {{ .Values.postgresql.owner }}
+        - ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO {{ .Values.postgresql.owner }}
+        {{- with .Values.postgresql.extraInitSQL }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- end }}
+
+  storage:
+    size: {{ .Values.postgresql.storage.size }}
+    {{- with .Values.postgresql.storage.storageClass }}
+    storageClass: {{ . | quote }}
+    {{- end }}
+
+  {{- if .Values.postgresql.walStorage.enabled }}
+  walStorage:
+    size: {{ .Values.postgresql.walStorage.size }}
+    {{- with .Values.postgresql.walStorage.storageClass }}
+    storageClass: {{ . | quote }}
+    {{- end }}
+  {{- end }}
+
+  {{- with .Values.postgresql.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.postgresql.parameters }}
+  postgresql:
+    parameters:
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
+
+  {{- with .Values.postgresql.monitoring }}
+  monitoring:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.postgresql.backup }}
+  # Passed through to CNPG unchanged. Backup and restore are the operator's, not
+  # ours; see the CloudNativePG documentation for the shape.
+  backup:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.postgresql.externalClusters }}
+  # Where a recovery bootstrap reads from. Restoring from an object store names
+  # an entry here rather than a Backup object, which is the only form that works
+  # across namespaces or clusters - a Backup object is namespaced, so pointing at
+  # one is restricted to restoring in place.
+  externalClusters:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.postgresql.affinity }}
+  affinity:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -57,3 +57,15 @@ metricsCollector:
     pullPolicy: IfNotPresent
   deployment:
     enabled: true
+
+# Both ON here, because this is the only values file the release workflow renders
+# and it is the only place the whole chart is rendered at once - the unittest
+# suites in tests/ each render a single template.
+#
+# Safe without the CloudNativePG operator installed: the workflow's `helm upgrade
+# --dry-run` is client-side, so the Cluster CR is rendered but never sent to the
+# API server for schema validation.
+postgresql:
+  bundled: true
+queue:
+  bundled: true
