@@ -187,3 +187,34 @@ tests:
       - equal:
           path: spec.externalClusters[0].barmanObjectStore.destinationPath
           value: s3://backups/
+
+  # A test harness sets session_replication_role to suppress triggers while it
+  # deletes rows. That normally needs a superuser, which CloudNativePG does not
+  # give the application role. Granting the one parameter is enough, and it is
+  # not an escalation: the owner already owns every table and could disable the
+  # triggers directly.
+  - it: grants SET on named parameters to the owner
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+        owner: keeperhub
+        grantSetOnParameters:
+          - session_replication_role
+    asserts:
+      - contains:
+          path: spec.bootstrap.initdb.postInitApplicationSQL
+          content: GRANT SET ON PARAMETER session_replication_role TO keeperhub
+
+  - it: grants nothing when no parameters are named
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+    asserts:
+      - notMatchRegex:
+          path: spec.bootstrap.initdb.postInitApplicationSQL[0]
+          pattern: ON PARAMETER
+      - lengthEqual:
+          path: spec.bootstrap.initdb.postInitApplicationSQL
+          count: 3

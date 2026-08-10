@@ -65,6 +65,14 @@ spec:
         - ALTER SCHEMA public OWNER TO {{ .Values.postgresql.owner }}
         - GRANT ALL ON SCHEMA public TO {{ .Values.postgresql.owner }}
         - ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO {{ .Values.postgresql.owner }}
+        {{- if .Values.postgresql.grantSetOnParameters }}
+        # Lets the owner SET parameters that normally need a superuser, without
+        # making it one. PostgreSQL 15 added this GRANT precisely so that
+        # superuser-only settings can be delegated one at a time.
+        {{- range .Values.postgresql.grantSetOnParameters }}
+        - GRANT SET ON PARAMETER {{ . }} TO {{ $.Values.postgresql.owner }}
+        {{- end }}
+        {{- end }}
         {{- with .Values.postgresql.extraInitSQL }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

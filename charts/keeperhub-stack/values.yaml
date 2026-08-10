@@ -195,6 +195,19 @@ postgresql:
   # from an object store reads from. Needed for any restore into a different
   # namespace or cluster: the alternative, naming a Backup object, is namespaced.
   externalClusters: []
+  # Parameters the owner may SET without being a superuser, granted once at
+  # bootstrap. pg_parameter_acl is a shared catalog, so one grant covers every
+  # database in the cluster.
+  #
+  # The usual entry is session_replication_role, which a test harness sets to
+  # 'replica' to suppress triggers while deleting rows. Granting it is not the
+  # privilege escalation it looks like: the owner already owns every table and
+  # can ALTER TABLE ... DISABLE TRIGGER, so this adds no capability it lacks.
+  #
+  # Bootstrap-only, like everything under initdb. CloudNativePG runs these once,
+  # when the cluster is created; adding an entry later does nothing to a running
+  # cluster and the GRANT has to be issued by hand.
+  grantSetOnParameters: []
   primaryUpdateStrategy: unsupervised
   affinity: {}
   annotations: {}
