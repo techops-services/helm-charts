@@ -1179,6 +1179,48 @@ entries:
   keeperhub-stack:
   - apiVersion: v2
     appVersion: 1.0.0
+    created: "2026-08-10T10:57:14.550045348Z"
+    dependencies:
+    - alias: app
+      condition: app.enabled
+      name: common
+      repository: file://../common
+      version: 0.5.0
+    - alias: executor
+      condition: executor.enabled
+      name: common
+      repository: file://../common
+      version: 0.5.0
+    - alias: schedule
+      condition: schedule.enabled
+      name: common
+      repository: file://../common
+      version: 0.5.0
+    - alias: block
+      condition: block.enabled
+      name: common
+      repository: file://../common
+      version: 0.5.0
+    - alias: metricsCollector
+      condition: metricsCollector.enabled
+      name: common
+      repository: file://../common
+      version: 0.5.0
+    description: Umbrella chart that deploys the KeeperHub execution pipeline (app,
+      executor, schedule + block dispatchers, metrics collector) as a single atomic
+      Helm release. It wraps the `common` chart once per component via aliased dependencies
+      so that `helm upgrade --install --atomic --wait` rolls the whole stack together
+      and rolls all of it back if any component fails to become ready. This avoids
+      the staggered, per-release rollovers that can orphan in-flight workflow executions
+      during a deploy.
+    digest: f299f5a5c52793a220119f815d5b4b4b03bfe11089311bbda05a14e9e8eb6d98
+    name: keeperhub-stack
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/keeperhub-stack-0.4.0/keeperhub-stack-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
+    appVersion: 1.0.0
     created: "2026-07-09T14:25:43.780106665Z"
     dependencies:
     - alias: app
@@ -1375,4 +1417,4 @@ entries:
     urls:
     - https://github.com/techops-services/helm-charts/releases/download/valkey-1.0.0/valkey-1.0.0.tgz
     version: 1.0.0
-generated: "2026-07-09T14:25:43.780465856Z"
+generated: "2026-08-10T10:57:14.55028539Z"
