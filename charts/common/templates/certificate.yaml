@@ -9,10 +9,10 @@ spec:
   duration: 2160h
   renewBefore: 720h
   issuerRef:
-    name: {{ .Values.service.tls.issuerName }}
+    name: {{ include "common.render" (dict "value" .Values.service.tls.issuerName "ctx" $) }}
     kind: ClusterIssuer
   dnsNames:
   {{- range .Values.ingress.hosts }}
-    - {{ . | quote }}
+    - {{ include "common.render" (dict "value" . "ctx" $) | quote }}
   {{- end }}
 {{- end }}

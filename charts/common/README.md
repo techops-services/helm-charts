@@ -4,7 +4,46 @@
 
 ```bash
 helm lint charts/common --values charts/common/test-values.yaml
+helm unittest charts/common
 ```
+
+## Computed values: `type: template`
+
+Env values are literals. `type: kv` writes the string into the pod spec exactly as
+written, which means a values file cannot compose one. That is fine until a value
+must be repeated: an endpoint that appears in four components has to be written
+four times, and nothing catches the fifth copy going stale.
+
+`type: template` renders the value through `tpl` against the chart root, so one
+key can supply many:
+
+```yaml
+global:
+  queueName: elasticmq
+
+env:
+  SQS_QUEUE_URL:
+    type: template
+    value: "http://{{ .Values.global.queueName }}.{{ .Release.Namespace }}.svc.cluster.local:9324/000000000000/workflow-queue"
+```
+
+`.Values.global` works inside a subchart because Helm merges the parent's `global:`
+map into every subchart. `.Release` is shared for the same reason. Between them an
+umbrella chart can hand one value to all of its components without the operator
+repeating it.
+
+Use it only where a value must be computed. `type: kv` stays the right choice for
+a plain literal, and its behaviour is unchanged - a `kv` value containing `{{` is
+still written out verbatim.
+
+### Images render the same way
+
+`image.repository`, `image.tag` and an initContainer's `image` string accept the
+same syntax, but they are only rendered when the string actually contains `{{`.
+A string without it is passed through untouched, so no values file written before
+0.6.0 changes behaviour. An image string that contains `{{` but is not a valid
+template now fails the render rather than reaching the kubelet as a broken
+reference.
 
 ## Regarding the IRSA role-arn guard
 

@@ -118,11 +118,27 @@ and prove nothing in CI. Check for the CRD before installing instead.
 
 ### Pinning the endpoints
 
-`common` renders env values without `tpl`, so a values file cannot compute a
-hostname — `{{ .Release.Name }}-postgres` would ship literally. The endpoints
-are therefore pinned literals in the consuming values file, and this chart
-verifies them at render time via `strictEndpointCheck`. `helm install` prints
-the exact strings to use.
+A `type: kv` env value is written out verbatim, so a values file using one cannot
+compute a hostname - `{{ .Release.Name }}-postgres` would ship literally. Since
+`common` 0.6.0 a value can instead be declared `type: template`, which is
+rendered through `tpl` and can therefore reach `.Values.global` and
+`.Release.Namespace`:
+
+```yaml
+global:
+  queueName: elasticmq
+
+app:
+  env:
+    SQS_QUEUE_URL:
+      type: template
+      value: "http://{{ .Values.global.queueName }}.{{ .Release.Namespace }}.svc.cluster.local:9324/000000000000/keeperhub-workflow-queue"
+```
+
+That removes most of the opportunity for drift, but not all of it, so
+`strictEndpointCheck` still verifies the result at render time. It renders a
+`type: template` value before comparing it, and ignores `type: secret`
+altogether. `helm install` prints the exact strings to use.
 
 Both mismatches are worth guarding because neither looks like a failure:
 
@@ -151,3 +167,57 @@ lock released cleanly across 13 consecutive restarts with the grace period and
 
 One behaviour to know: `PurgeQueue` is **not** persisted, so purged messages
 reappear after a restart. Nothing in the application calls it — only tests do.
+
+## Install secrets
+
+`secrets.generate` is off by default. Staging and production get these values
+from SSM through External Secrets and must keep doing so; this exists for an
+install that has no secret manager, where the alternative is a person generating
+eight values by hand.
+
+Two of them have formats that are not interchangeable and fail in ways that do
+not look like a format problem, which is the main reason this belongs in the
+chart rather than in an instruction:
+
+- `INTERNAL_SERVICE_HMAC_SECRET` and `AGENTIC_WALLET_HMAC_KMS_KEY` must base64
+  decode to exactly 32 bytes
+- `INTEGRATION_ENCRYPTION_KEY` must be 64 hex characters, aes-256-gcm material
+
+Each key resolves in order: an explicit value in `secrets.values`, then the value
+already in the cluster, then a generated one. The middle step is what stops an
+upgrade rotating a key.
+
+`SENDGRID_API_KEY` and the three `TURNKEY_` keys are never generated. They are
+rendered empty instead, because an invented API key replaces a clean
+unconfigured state with 401s, and the components reference the Secrets with a
+plain `secretKeyRef` that has no `optional` field - a missing Secret is
+`CreateContainerConfigError`, not a degraded install.
+
+### Two limits worth knowing before you rely on it
+
+**`lookup` is empty during templating.** The "keep what is already installed"
+step reads the cluster, and `helm template` and `--dry-run` do not. A rendered
+manifest therefore shows fresh values every time, and a
+`helm template | kubectl apply` pipeline **rotates these keys on every run**.
+Losing `INTEGRATION_ENCRYPTION_KEY` orphans every stored integration credential.
+If you deploy that way, pin every key in `secrets.values` or set
+`generate: false` and create the Secrets yourself.
+
+**Changing a secret does not restart anything.** An env var is resolved once, at
+pod start, so updating a Secret leaves the running pods on the old value. Roll
+them yourself:
+
+```sh
+kubectl rollout restart deployment -n <namespace> -l app.kubernetes.io/instance=<release>
+```
+
+A checksum annotation would do this automatically, but an umbrella chart cannot
+write a pod annotation into a subchart's template.
+
+### Secrets are kept on rollback
+
+Every generated Secret carries `helm.sh/resource-policy: keep`. Without it an
+`--atomic` rollback of a failed first install deletes the key the database was
+just bootstrapped with, and the credentials that encrypt stored integrations.
+That is not theoretical - the same annotation is on the `Cluster` and its PVCs
+for exactly the reason it was proven necessary there.

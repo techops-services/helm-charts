@@ -364,6 +364,18 @@ env:
 #     type: secret
 #     name: example-secret
 #     key: FROM_SECRET
+#
+# type: template renders the value through tpl against the chart root, so one
+# values key can supply many env vars and a subchart can reach shared values:
+#   QUEUE_URL:
+#     type: template
+#     value: "http://{{ .Values.global.queueName }}.{{ .Release.Namespace }}.svc.cluster.local:9324"
+# Use it only where a value must be computed. type: kv stays a literal and is
+# still the right choice for everything else.
+#
+# image.repository, image.tag and an initContainer image string are rendered the
+# same way, but only when the string contains "{{". A string without it is passed
+# through unchanged, so no existing values file changes behaviour.
 
 serviceMonitors:
   enabled: false

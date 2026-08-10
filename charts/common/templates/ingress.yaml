@@ -19,18 +19,18 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: {{ join ", " $middlewares }}
   {{- end }}
 spec:
-  ingressClassName: {{ .Values.ingressClassName }}
+  ingressClassName: {{ include "common.render" (dict "value" .Values.ingressClassName "ctx" $) }}
   {{- if .Values.service.tls.enabled }}
   tls:
     - hosts:
       {{- range .Values.ingress.hosts }}
-        - {{ . | quote }}
+        - {{ include "common.render" (dict "value" . "ctx" $) | quote }}
       {{- end }}
       secretName: {{ $fullName }}-tls
   {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
-    - host: {{ . | quote }}
+    - host: {{ include "common.render" (dict "value" . "ctx" $) | quote }}
       http:
         paths:
           - backend:

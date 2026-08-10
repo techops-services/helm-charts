@@ -1,0 +1,31 @@
+{{/*
+ServiceAccount for workflow-runner Job pods.
+
+Runner pods are not Helm-rendered. The executor submits each Job object through
+the Kubernetes API and stamps serviceAccountName into it, taking the name from
+its RUNNER_SERVICE_ACCOUNT setting. Nothing else creates this account, so it has
+to exist in the namespace independently of any Deployment.
+
+Without it the Job object is still admitted, but its pods are rejected by the
+ServiceAccount admission controller, and because the Job is created with
+backoffLimit 0 the execution dies immediately with no retry.
+
+Off by default. Staging and production create it from their own manifest
+alongside the RBAC and NetworkPolicy that belong with it, so turning this on
+there would mean two owners for one object.
+
+No RoleBinding, no annotations, and automountServiceAccountToken: false. The
+runner makes no Kubernetes API calls, so a runner pod holds no cluster
+credentials at all. That is the point of it having its own account.
+*/}}
+{{- if .Values.runnerServiceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.runnerServiceAccount.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keeperhub-stack.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: workflow-runner
+automountServiceAccountToken: false
+{{- end }}

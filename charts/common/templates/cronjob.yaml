@@ -41,8 +41,8 @@ spec:
           {{- end }}
         {{- end }}
           containers:
-          - image: "{{ $job.image.repository }}:{{ $job.image.tag }}"
-            imagePullPolicy: {{ $job.image.imagePullPolicy }}
+          - image: "{{ include "common.render" (dict "value" $job.image.repository "ctx" $) }}:{{ include "common.render" (dict "value" $job.image.tag "ctx" $) }}"
+            imagePullPolicy: {{ include "common.render" (dict "value" $job.image.imagePullPolicy "ctx" $) }}
             name: {{ $job.name }}
             {{- if $job.env }}
             env:
@@ -50,11 +50,13 @@ spec:
               - name: {{ $k | quote }}
               {{- if eq $v.type "kv" }}
                 value: {{ $v.value | quote }}
+              {{- else if eq $v.type "template" }}
+                value: {{ include "common.render" (dict "value" $v.value "ctx" $) | quote }}
               {{- else if eq $v.type "secret" }}
                 valueFrom:
                   secretKeyRef:
-                    name: {{ $v.name | quote }}
-                    key: {{ $v.key | quote }}
+                    name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
+                    key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
               {{- else if eq $v.type "parameterStore" }}
                 valueFrom:
                   secretKeyRef:
@@ -63,8 +65,8 @@ spec:
               {{- else if eq $v.type "configmapRef" }}
                 valueFrom:
                   configMapKeyRef:
-                    name: {{ $v.name | quote }}
-                    key: {{ $v.key | quote }}
+                    name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
+                    key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
               {{- end }}
               {{- end }}
             {{- end }}
