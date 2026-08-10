@@ -106,3 +106,42 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  # A type: template value is a template, so comparing the raw string would be
+  # meaningless. The guard renders it first. Without these two tests the guard
+  # would silently stop covering exactly the values that moved to templates.
+  - it: renders a type template value before comparing it, and accepts a correct one
+    set:
+      queue:
+        bundled: true
+        name: elasticmq
+      global:
+        queueName: elasticmq
+      app:
+        env:
+          SQS_QUEUE_URL:
+            type: template
+            value: "http://{{ .Values.global.queueName }}.{{ .Release.Namespace }}.svc.cluster.local:9324/000000000000/keeperhub-workflow-queue"
+    release:
+      namespace: NAMESPACE
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: rejects a type template value that renders the wrong host
+    set:
+      queue:
+        bundled: true
+        name: elasticmq
+      global:
+        queueName: some-other-queue
+      app:
+        env:
+          SQS_QUEUE_URL:
+            type: template
+            value: "http://{{ .Values.global.queueName }}.{{ .Release.Namespace }}.svc.cluster.local:9324/000000000000/keeperhub-workflow-queue"
+    release:
+      namespace: NAMESPACE
+    asserts:
+      - failedTemplate:
+          errorPattern: "does not surface as a connection error"

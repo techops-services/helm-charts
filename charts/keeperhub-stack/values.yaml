@@ -254,6 +254,70 @@ queue:
     limits:
       memory: 512Mi
 
+# ---------------------------------------------------------------------------
+# Install secrets.
+#
+# Off by default, so staging and prod are unaffected - they get these from SSM
+# through External Secrets and must keep doing so. This exists for an install
+# that has no secret manager, where the alternative is a human generating eight
+# values by hand and getting the encoding of two of them wrong.
+#
+# Each key resolves in this order:
+#   1. an explicit value in secrets.values below
+#   2. the value already in the cluster, so an upgrade never rotates a key
+#   3. a generated one
+#
+# Step 2 is why these Secrets carry helm.sh/resource-policy: keep. Losing
+# INTEGRATION_ENCRYPTION_KEY orphans every stored integration credential, and an
+# --atomic rollback of a failed first install would otherwise delete it.
+#
+# KNOWN LIMIT: step 2 uses `lookup`, which returns nothing under `helm template`
+# and `--dry-run`. Rendering shows fresh values every time, and a
+# `helm template | kubectl apply` pipeline ROTATES these keys on every run. If
+# you deploy that way, either pin every key in secrets.values or set
+# generate: false and create the Secrets yourself.
+# ---------------------------------------------------------------------------
+
+secrets:
+  generate: false
+
+  # Explicit values win over both the stored and the generated value. Anything
+  # left empty falls through. Supply these with --set or a private values file,
+  # never in a committed one.
+  values: {}
+  #   INTERNAL_SERVICE_HMAC_SECRET: ""   # base64 of exactly 32 bytes
+  #   AGENTIC_WALLET_HMAC_KMS_KEY: ""    # base64 of exactly 32 bytes
+  #   BETTER_AUTH_SECRET: ""
+  #   OAUTH_JWT_SECRET: ""
+  #   MCP_SESSION_SECRET: ""
+  #   INTEGRATION_ENCRYPTION_KEY: ""     # 64 hex characters
+  #   DATABASE_URL: ""                   # only needed when postgresql.bundled is false
+  #   POSTGRES_PASSWORD: ""              # only used when postgresql.bundled is true
+  #   SENDGRID_API_KEY: ""               # never generated; empty means email is off
+  #   TURNKEY_API_PUBLIC_KEY: ""         # never generated
+  #   TURNKEY_API_PRIVATE_KEY: ""        # never generated
+  #   TURNKEY_ORGANIZATION_ID: ""        # never generated
+
+  # Secret names. They are referenced by env entries in the component values and
+  # by the executor, which builds runner Job references as
+  # "<runnerSecretPrefix>-<slug>" with the key equal to the name.
+  sharedName: keeperhub-shared
+  emailName: keeperhub-email
+  runnerSecretPrefix: keeperhub-executor
+
+  # Where the connection string lives. In bundled mode this chart composes and
+  # writes it. In bring-your-own mode you create this Secret, and the chart reads
+  # it only to copy the value into the runner's Secret.
+  dbSecretName: keeperhub-db
+  dbSecretKey: DATABASE_URL
+
+# The ServiceAccount runner Job pods run as. Deliberately carries no RBAC and no
+# annotations: Jobs are created by the executor through the Kubernetes API, and
+# the runner itself needs to reach nothing in the cluster.
+runnerServiceAccount:
+  create: false
+  name: keeperhub-workflow-runner
+
 # Fail the render when a pinned endpoint literal disagrees with what the bundled
 # component renders. Neither mismatch surfaces as a connection error, so both
 # are checked at render time instead. Set false for topologies this does not
