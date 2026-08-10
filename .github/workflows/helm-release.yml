@@ -155,6 +155,7 @@ jobs:
         id: helm-tests
         continue-on-error: true
         run: |
+
           # Create log directory
           mkdir -p /tmp/helm-logs
           
