@@ -58,14 +58,24 @@ metricsCollector:
   deployment:
     enabled: true
 
-# Both ON here, because this is the only values file the release workflow renders
-# and it is the only place the whole chart is rendered at once - the unittest
-# suites in tests/ each render a single template.
+# The queue is ON here and the database is OFF, and the asymmetry is forced by
+# what the release workflow does rather than by preference.
 #
-# Safe without the CloudNativePG operator installed: the workflow's `helm upgrade
-# --dry-run` is client-side, so the Cluster CR is rendered but never sent to the
-# API server for schema validation.
+# That workflow runs `helm upgrade --install --dry-run` against a throwaway
+# minikube. A dry-run still builds the resource list, and building it needs a
+# REST mapping for every kind, which means the CRD must be registered on that
+# cluster. CI installs no operators, so a rendered CloudNativePG Cluster fails
+# with `no matches for kind "Cluster" in version "postgresql.cnpg.io/v1"` before
+# anything is validated. Turning the database on here does not test the bundled
+# path, it only breaks the job.
+#
+# Nothing is lost. tests/data_plane_test.yaml renders postgres-cnpg.yaml under
+# helm-unittest, which needs no cluster and asserts the CR's contents directly,
+# which is stronger than a dry-run would have been anyway.
+#
+# The queue stays ON because it is ConfigMap, Service and StatefulSet - all core
+# kinds - so it exercises the enabled path end to end in the dry-run.
 postgresql:
-  bundled: true
+  bundled: false
 queue:
   bundled: true
