@@ -1,0 +1,141 @@
+suite: computed values via type template and common.render
+templates:
+  - templates/deployment.yaml
+# The chart ships an empty service block, so a Deployment cannot render from the
+# defaults alone. This is the same file CI renders the chart with.
+values:
+  - ../test-values.yaml
+tests:
+  - it: renders a type template env value against global and release
+    set:
+      global:
+        queueName: elasticmq
+      deployment:
+        enabled: true
+      env:
+        SQS_QUEUE_URL:
+          type: template
+          value: "http://{{ .Values.global.queueName }}.{{ .Release.Namespace }}.svc.cluster.local:9324/q"
+    release:
+      namespace: keeperhub
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: "SQS_QUEUE_URL"
+            value: "http://elasticmq.keeperhub.svc.cluster.local:9324/q"
+
+  # The whole backward-compatibility claim rests on this one. A kv value is
+  # written out byte for byte, even when it looks like a template, so no values
+  # file written before 0.6.0 can change behaviour.
+  - it: leaves a type kv value untouched even when it contains template syntax
+    set:
+      deployment:
+        enabled: true
+      env:
+        LOG_FORMAT:
+          type: kv
+          value: "{{ .Timestamp }} {{ .Level }}"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: "LOG_FORMAT"
+            value: "{{ .Timestamp }} {{ .Level }}"
+
+  - it: renders a templated image repository and tag
+    set:
+      global:
+        registry: registry.example.com/keeperhub
+        tag: v1.2.3
+      deployment:
+        enabled: true
+      image:
+        repository: "{{ .Values.global.registry }}"
+        tag: "app-{{ .Values.global.tag }}"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/keeperhub:app-v1.2.3
+
+  - it: passes a plain image reference through unchanged
+    set:
+      deployment:
+        enabled: true
+      image:
+        repository: registry.example.com/keeperhub
+        tag: app-v1.2.3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/keeperhub:app-v1.2.3
+
+  # A secret reference is as much a per-install value as an endpoint is, so its
+  # name and key take the same syntax. Without this an operator whose Secret is
+  # not called keeperhub-db has to edit every reference by hand.
+  - it: renders a templated secret name and key
+    set:
+      global:
+        dbSecretName: my-db
+        dbSecretKey: url
+      deployment:
+        enabled: true
+      env:
+        DATABASE_URL:
+          type: secret
+          name: "{{ .Values.global.dbSecretName }}"
+          key: "{{ .Values.global.dbSecretKey }}"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: "DATABASE_URL"
+            valueFrom:
+              secretKeyRef:
+                name: "my-db"
+                key: "url"
+
+  - it: passes a plain secret name and key through unchanged
+    set:
+      deployment:
+        enabled: true
+      env:
+        DATABASE_URL:
+          type: secret
+          name: keeperhub-db
+          key: DATABASE_URL
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: "DATABASE_URL"
+            valueFrom:
+              secretKeyRef:
+                name: "keeperhub-db"
+                key: "DATABASE_URL"
+
+  - it: renders a templated initContainer image and env
+    set:
+      global:
+        registry: registry.example.com/keeperhub
+        tag: v1.2.3
+      deployment:
+        enabled: true
+        initContainers:
+          - name: db-migration
+            image: "{{ .Values.global.registry }}:migrator-{{ .Values.global.tag }}"
+            env:
+              TARGET:
+                type: template
+                value: "{{ .Release.Namespace }}"
+    release:
+      namespace: keeperhub
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: registry.example.com/keeperhub:migrator-v1.2.3
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: "TARGET"
+            value: "keeperhub"

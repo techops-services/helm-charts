@@ -37,7 +37,7 @@ spec:
       initContainers:
         {{- range .Values.statefulset.initContainers }}
         - name: {{ .name }}
-          image: {{ .image }}
+          image: {{ include "common.render" (dict "value" .image "ctx" $) }}
           {{- if .command }}
           command:
             {{ toYaml .command | nindent 12 }}
@@ -55,6 +55,8 @@ spec:
             - name: {{ $k | quote }}
             {{- if eq $v.type "kv" }}
               value: {{ $v.value | quote }}
+            {{- else if eq $v.type "template" }}
+              value: {{ include "common.render" (dict "value" $v.value "ctx" $) | quote }}
             {{- else if eq $v.type "parameterStore" }}
               valueFrom:
                 secretKeyRef:
@@ -63,13 +65,13 @@ spec:
             {{- else if eq $v.type "configmapRef" }}
               valueFrom:
                 configMapKeyRef:
-                  name: {{ $v.name | quote }}
-                  key: {{ $v.key | quote }}
+                  name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
+                  key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
             {{- else if eq $v.type "secret" }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ $v.name | quote }}
-                  key: {{ $v.key | quote }}
+                  name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
+                  key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
             {{- end }}
             {{- end }}
           {{- end }}
@@ -133,7 +135,7 @@ spec:
         - name: {{ include "common.fullname" . }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ include "common.render" (dict "value" .Values.image.repository "ctx" $) }}:{{ include "common.render" (dict "value" (.Values.image.tag | default .Chart.AppVersion) "ctx" $) }}"
           {{- if .Values.statefulset.lifecycle }}
           lifecycle:
             {{- toYaml .Values.statefulset.lifecycle | nindent 12 }}
@@ -175,6 +177,8 @@ spec:
             - name: {{ $k | quote }}
             {{- if eq $v.type "kv" }}
               value: {{ $v.value | quote }}
+            {{- else if eq $v.type "template" }}
+              value: {{ include "common.render" (dict "value" $v.value "ctx" $) | quote }}
             {{- else if eq $v.type "parameterStore" }}
               valueFrom:
                 secretKeyRef:
@@ -183,13 +187,13 @@ spec:
             {{- else if eq $v.type "configmapRef" }}
               valueFrom:
                 configMapKeyRef:
-                  name: {{ $v.name | quote }}
-                  key: {{ $v.key | quote }}
+                  name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
+                  key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
             {{- else if eq $v.type "secret" }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ $v.name | quote }}
-                  key: {{ $v.key | quote }}
+                  name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
+                  key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
             {{- end }}
             {{- end }}
           livenessProbe:
@@ -202,7 +206,7 @@ spec:
         {{- if .Values.sidecars }}
         {{- range .Values.sidecars }}
         - name: {{ .name }}
-          image: "{{ .image.repository }}:{{ .image.tag }}"
+          image: "{{ include "common.render" (dict "value" .image.repository "ctx" $) }}:{{ include "common.render" (dict "value" .image.tag "ctx" $) }}"
           {{- if .volumeMounts }}
           volumeMounts:
             {{- range .volumeMounts }}
@@ -228,6 +232,8 @@ spec:
             - name: {{ $k | quote }}
               {{- if eq $v.type "kv" }}
               value: {{ $v.value | quote }}
+              {{- else if eq $v.type "template" }}
+              value: {{ include "common.render" (dict "value" $v.value "ctx" $) | quote }}
               {{- else if eq $v.type "parameterStore" }}
               valueFrom:
                 secretKeyRef:
@@ -236,13 +242,13 @@ spec:
               {{- else if eq $v.type "configmapRef" }}
               valueFrom:
                 configMapKeyRef:
-                  name: {{ $v.name | quote }}
-                  key: {{ $v.key | quote }}
+                  name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
+                  key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
               {{- else if eq $v.type "secret" }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ $v.name | quote }}
-                  key: {{ $v.key | quote }}
+                  name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
+                  key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
               {{- end }}
             {{- end }}
           {{- end }}
