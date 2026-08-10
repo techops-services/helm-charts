@@ -38,6 +38,18 @@ generated `uri` and `fqdn-uri` Secret keys use shorter forms and will fail TLS.
 {{- printf "%s-rw.%s.svc.cluster.local" (include "keeperhub-stack.pgName" .) .Release.Namespace -}}
 {{- end -}}
 
+{{/*
+Name of the basic-auth Secret CloudNativePG bootstraps the database from.
+
+Derived in one place because two templates need the same answer. secrets.yaml
+writes this Secret and postgres-cnpg.yaml points the Cluster at it; if they
+disagreed, the operator would generate its own credentials and the connection
+string the chart composed would authenticate against nothing.
+*/}}
+{{- define "keeperhub-stack.pgCredentialsSecret" -}}
+{{- .Values.postgresql.credentialsSecret | default (printf "%s-db-credentials" .Release.Name) -}}
+{{- end -}}
+
 {{/* Base endpoint for the bundled queue. */}}
 {{- define "keeperhub-stack.queueEndpoint" -}}
 {{- printf "http://%s.%s.svc.cluster.local:%v" .Values.queue.name .Release.Namespace .Values.queue.port -}}

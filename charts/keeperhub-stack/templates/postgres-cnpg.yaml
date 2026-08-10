@@ -51,11 +51,15 @@ spec:
     initdb:
       database: {{ .Values.postgresql.database }}
       owner: {{ .Values.postgresql.owner }}
-      {{- if .Values.postgresql.credentialsSecret }}
+      {{- if or .Values.postgresql.credentialsSecret .Values.secrets.generate }}
       # Supplied rather than generated, so the password is stable across helm
-      # rollbacks and can be composed into a connection string by the installer.
+      # rollbacks and can be composed into a connection string.
+      #
+      # When secrets.generate is on this chart writes that Secret itself, so the
+      # name has to be derived identically in both places - hence the helper
+      # rather than a literal here and a default there.
       secret:
-        name: {{ .Values.postgresql.credentialsSecret }}
+        name: {{ include "keeperhub-stack.pgCredentialsSecret" . }}
       {{- end }}
       postInitApplicationSQL:
         # drizzle-kit creates its own `drizzle` schema during migration, so the

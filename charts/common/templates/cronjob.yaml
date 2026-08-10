@@ -42,7 +42,7 @@ spec:
         {{- end }}
           containers:
           - image: "{{ include "common.render" (dict "value" $job.image.repository "ctx" $) }}:{{ include "common.render" (dict "value" $job.image.tag "ctx" $) }}"
-            imagePullPolicy: {{ $job.image.imagePullPolicy }}
+            imagePullPolicy: {{ include "common.render" (dict "value" $job.image.imagePullPolicy "ctx" $) }}
             name: {{ $job.name }}
             {{- if $job.env }}
             env:

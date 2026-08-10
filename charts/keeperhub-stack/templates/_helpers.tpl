@@ -53,9 +53,17 @@ of what is installed, and why values.yaml documents the
 {{- $explicit -}}
 {{- else -}}
 {{- $stored := "" -}}
+{{/*
+The key inside the Secret is not always the name used in secrets.values. The
+runner Secrets store their value under a key equal to the Secret's own name,
+because that is how the executor builds the reference. Reading the wrong key
+finds nothing and silently regenerates, which for the integration encryption key
+means orphaning every stored credential on the next upgrade.
+*/}}
+{{- $storedKey := .storedKey | default .key -}}
 {{- $existing := lookup "v1" "Secret" .ns .secretName -}}
 {{- if $existing -}}
-{{- $encoded := index ($existing.data | default dict) .key | default "" -}}
+{{- $encoded := index ($existing.data | default dict) $storedKey | default "" -}}
 {{- if $encoded -}}
 {{- $stored = b64dec $encoded -}}
 {{- end -}}
