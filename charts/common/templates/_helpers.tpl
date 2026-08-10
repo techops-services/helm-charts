@@ -70,7 +70,17 @@ The ctx must be the root context, because tpl evaluates the string against it -
 that is what lets a values file reach .Values.global and .Release.
 */}}
 {{- define "common.render" -}}
-{{- $value := toString .value -}}
+{{/*
+An absent value renders empty, as it did before this helper existed. `toString`
+on nil produces the literal "<nil>", which would reach the manifest - a cronjob
+that simply omits imagePullPolicy is the case that finds it.
+
+kindIs rather than a truth test, so a legitimate false or 0 still renders.
+*/}}
+{{- $value := "" -}}
+{{- if not (kindIs "invalid" .value) -}}
+{{- $value = toString .value -}}
+{{- end -}}
 {{- if contains "{{" $value -}}
 {{- tpl $value .ctx -}}
 {{- else -}}

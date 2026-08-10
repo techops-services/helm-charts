@@ -58,6 +58,23 @@ tests:
           path: spec.template.spec.containers[0].image
           value: registry.example.com/keeperhub:app-v1.2.3
 
+  # An omitted value used to render as empty. toString on nil produces the
+  # literal "<nil>", which would reach the manifest as a pull policy the kubelet
+  # rejects. Found by a byte-for-byte render comparison, not by a person.
+  - it: renders an omitted value as empty rather than the string nil
+    set:
+      deployment:
+        enabled: true
+      image:
+        repository: registry.example.com/keeperhub
+        tag: v1
+        pullPolicy: null
+    asserts:
+      # An empty key parses back as null. "<nil>" would be a non-empty string,
+      # so this assertion is what separates the two.
+      - isNullOrEmpty:
+          path: spec.template.spec.containers[0].imagePullPolicy
+
   - it: passes a plain image reference through unchanged
     set:
       deployment:
