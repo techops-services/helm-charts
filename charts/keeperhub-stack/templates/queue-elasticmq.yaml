@@ -1,0 +1,212 @@
+{{- include "keeperhub-stack.validateEndpoints" . -}}
+{{- if .Values.queue.bundled }}
+{{/*
+ElasticMQ - the SQS-compatible queue for a self-hosted install.
+
+A chart template rather than a dependency, deliberately. This repo's CI has no
+`helm dependency build` step, and helm fails chart load on a dependencies entry
+whose archive is missing EVEN WHEN its condition is false - it matches on name
+and never reads the condition. A dependency would therefore mean a second
+hand-maintained .tgz in git for something that is off by default.
+
+Not built on `common` either: common's pvc.yaml can only emit a chart-created
+StorageClass or storageClassName: "" (which disables dynamic provisioning), with
+no way to fall back to the cluster default, and it creates one PVC per release
+rather than per replica.
+
+Single replica, and that is not a placeholder. ElasticMQ has no clustering or
+replication; a second replica would be a second independent queue that silently
+splits messages. A restart is therefore a brief outage rather than a failover.
+Persistence is what keeps that outage from also being data loss.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.queue.name }}-conf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keeperhub-stack.queueLabels" . | nindent 4 }}
+data:
+  elasticmq.conf: |
+    include classpath("application.conf")
+
+    # Determines the URLs ElasticMQ RETURNS from CreateQueue, GetQueueUrl and
+    # ListQueues, so it is set to this Service's in-cluster DNS name to match
+    # what components are configured with.
+    #
+    # This matters more than it looks. The queue URL is bound into the HMAC
+    # signing string, and the consumer verifies each message against its own
+    # configured URL. ElasticMQ resolves the queue from the last path segment
+    # and ignores the host, so a mismatch still "works" at the transport layer
+    # while every message fails verification - which is exactly what makes it
+    # hard to spot, and why strictEndpointCheck exists.
+    node-address {
+      protocol = http
+      host = "{{ .Values.queue.name }}.{{ .Release.Namespace }}.svc.cluster.local"
+      port = {{ .Values.queue.port }}
+      context-path = ""
+    }
+    generate-node-address = false
+
+    rest-sqs {
+      enabled = true
+      bind-port = {{ .Values.queue.port }}
+      bind-hostname = "0.0.0.0"
+      # strict, not relaxed: a message real SQS would reject must be rejected
+      # here too, or this stops predicting production behaviour.
+      sqs-limits = strict
+    }
+
+    aws {
+      region = {{ .Values.queue.region }}
+      accountId = {{ .Values.queue.accountId | quote }}
+    }
+{{- if .Values.queue.persistence.enabled }}
+
+    # File-backed message storage, so a restart does not lose in-flight work.
+    # Verified on softwaremill/elasticmq-native:1.6.16: the GraalVM native image
+    # does carry a working H2 driver, and DeleteMessage is persisted, so
+    # already-processed messages are not redelivered after a restart.
+    #
+    # Known behaviour: PurgeQueue is NOT persisted. Purged messages reappear
+    # after a restart. Nothing in the application calls PurgeQueue - only tests
+    # do - but a test that purges and then restarts the queue will see them come
+    # back.
+    messages-storage {
+      enabled = true
+      uri = {{ .Values.queue.persistence.h2Uri | quote }}
+    }
+{{- end }}
+
+    # Queues are declared statically rather than created by an API call after
+    # startup, so readiness implies queue-ready with no bootstrap race, and the
+    # attributes are reviewable in git instead of being an argv fragment.
+    queues {
+{{- range .Values.queue.queues }}
+      {{ .name }} {
+        defaultVisibilityTimeout = {{ .defaultVisibilityTimeout }}
+        delay = 0 seconds
+        receiveMessageWait = 0 seconds
+        fifo = false
+        contentBasedDeduplication = false
+      }
+{{- end }}
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.queue.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keeperhub-stack.queueLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "keeperhub-stack.queueSelectorLabels" . | nindent 4 }}
+  ports:
+    - name: sqs
+      port: {{ .Values.queue.port }}
+      targetPort: sqs
+    - name: stats
+      port: {{ .Values.queue.statsPort }}
+      targetPort: stats
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.queue.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keeperhub-stack.queueLabels" . | nindent 4 }}
+spec:
+  serviceName: {{ .Values.queue.name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "keeperhub-stack.queueSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "keeperhub-stack.queueLabels" . | nindent 8 }}
+      annotations:
+        # Roll the pod when the queue configuration changes, since the conf is
+        # mounted from a ConfigMap and is only read at startup. Checksums the
+        # values the conf is derived from rather than the rendered file, because
+        # the ConfigMap lives in this same template and including it here would
+        # recurse.
+        checksum/config: {{ toYaml .Values.queue | sha256sum | trunc 16 }}
+    spec:
+      securityContext:
+        # The image runs as uid 1001 with gid 0, so the mounted volume has to be
+        # group-writable for H2 to create its file.
+        fsGroup: 0
+      # Measured: with 30s and the preStop below, H2 released its lock cleanly on
+      # every one of 13 consecutive restarts on 1.6.16. Upstream issue #756
+      # reports lock failures without them.
+      terminationGracePeriodSeconds: {{ .Values.queue.terminationGracePeriodSeconds }}
+      containers:
+        - name: elasticmq
+          image: "{{ .Values.queue.image.repository }}:{{ .Values.queue.image.tag }}"
+          imagePullPolicy: {{ .Values.queue.image.pullPolicy }}
+          ports:
+            - name: sqs
+              containerPort: {{ .Values.queue.port }}
+            - name: stats
+              containerPort: {{ .Values.queue.statsPort }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep {{ .Values.queue.preStopSleepSeconds }}"]
+          volumeMounts:
+            - name: conf
+              mountPath: /opt/elasticmq.conf
+              subPath: elasticmq.conf
+              readOnly: true
+{{- if .Values.queue.persistence.enabled }}
+            - name: data
+              mountPath: /data
+{{- end }}
+          resources:
+            {{- toYaml .Values.queue.resources | nindent 12 }}
+          # The statistics endpoint lists the live queues, so a 200 proves the
+          # queues were actually declared, not merely that the port opened.
+          startupProbe:
+            httpGet:
+              path: /statistics/queues
+              port: stats
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /statistics/queues
+              port: stats
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: sqs
+            periodSeconds: 15
+      volumes:
+        - name: conf
+          configMap:
+            name: {{ .Values.queue.name }}-conf
+{{- if .Values.queue.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        {{- if .Values.queue.persistence.keepOnDelete }}
+        annotations:
+          # An --atomic rollback of a failed first install would otherwise take
+          # the queue's data with it.
+          helm.sh/resource-policy: keep
+        {{- end }}
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- if .Values.queue.persistence.storageClass }}
+        storageClassName: {{ .Values.queue.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.queue.persistence.size }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,108 @@
+suite: bundled endpoint guard
+# Neither of these mismatches surfaces as a connection error at runtime, which
+# is why they are checked at render time and why they are worth a test suite.
+#
+# A wrong queue URL still "works" at the transport layer - ElasticMQ resolves
+# the queue from the last path segment and ignores the host - while every
+# message fails HMAC verification and is dropped.
+#
+# A wrong database host still resolves, but anything not ending
+# .svc.cluster.local has sslmode=verify-full forced onto it by the application
+# and then fails TLS against the in-cluster certificate.
+templates:
+  - templates/queue-elasticmq.yaml
+tests:
+  - it: rejects a database host that is not the fully qualified service name
+    set:
+      postgresql:
+        bundled: true
+      app:
+        env:
+          DATABASE_URL:
+            type: kv
+            # The short form CNPG's own generated Secret uses.
+            value: postgresql://u:p@RELEASE-NAME-postgres-rw.NAMESPACE.svc:5432/keeperhub
+    asserts:
+      - failedTemplate:
+          errorPattern: "does not surface as a connection error"
+
+  - it: accepts the fully qualified database host
+    set:
+      postgresql:
+        bundled: true
+      app:
+        env:
+          DATABASE_URL:
+            type: kv
+            value: postgresql://u:p@RELEASE-NAME-postgres-rw.NAMESPACE.svc.cluster.local:5432/keeperhub
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: rejects a queue endpoint pointing somewhere else
+    set:
+      queue:
+        bundled: true
+      executor:
+        env:
+          SQS_QUEUE_URL:
+            type: kv
+            value: http://localhost:4566/000000000000/keeperhub-workflow-queue
+    asserts:
+      - failedTemplate:
+          errorPattern: "does not surface as a connection error"
+
+  - it: accepts a queue endpoint that matches what the chart renders
+    set:
+      queue:
+        bundled: true
+      executor:
+        env:
+          SQS_QUEUE_URL:
+            type: kv
+            value: http://elasticmq.NAMESPACE.svc.cluster.local:9324/000000000000/keeperhub-workflow-queue
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  # Bring-your-own installs reference a Secret rather than pinning a literal.
+  - it: ignores secret references
+    set:
+      postgresql:
+        bundled: true
+      app:
+        env:
+          DATABASE_URL:
+            type: secret
+            name: my-db
+            key: DATABASE_URL
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: can be bypassed for topologies it does not anticipate
+    set:
+      strictEndpointCheck: false
+      postgresql:
+        bundled: true
+      app:
+        env:
+          DATABASE_URL:
+            type: kv
+            value: postgresql://u:p@somewhere-else:5432/keeperhub
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not check anything when the component is not bundled
+    set:
+      postgresql:
+        bundled: false
+      app:
+        env:
+          DATABASE_URL:
+            type: kv
+            value: postgresql://u:p@somewhere-else:5432/keeperhub
+    asserts:
+      - hasDocuments:
+          count: 0

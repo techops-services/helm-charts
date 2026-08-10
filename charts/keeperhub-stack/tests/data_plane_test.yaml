@@ -1,0 +1,220 @@
+suite: optional bundled data plane
+templates:
+  - templates/postgres-cnpg.yaml
+  - templates/queue-elasticmq.yaml
+tests:
+  - it: renders neither component by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders a CNPG Cluster when postgres is bundled
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+    asserts:
+      - isKind:
+          of: Cluster
+      - equal:
+          path: apiVersion
+          value: postgresql.cnpg.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-postgres
+
+  # A failed first install would otherwise roll back, delete the Cluster, and
+  # take the operator-managed PVCs with it - so the retry starts from an empty
+  # database.
+  - it: keeps the database across an atomic rollback
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/resource-policy"]
+          value: keep
+
+  # drizzle-kit creates its own schema during migration, and on PG15+ the public
+  # schema is not writable by a plain database owner.
+  - it: grants the owner enough to run migrations
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+        owner: keeperhub
+    asserts:
+      - contains:
+          path: spec.bootstrap.initdb.postInitApplicationSQL
+          content: ALTER SCHEMA public OWNER TO keeperhub
+
+  - it: passes CNPG backup configuration straight through
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+        backup:
+          retentionPolicy: 30d
+    asserts:
+      - equal:
+          path: spec.backup.retentionPolicy
+          value: 30d
+
+  - it: restores instead of initialising when recovery is set
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+        recovery:
+          source: origin
+    asserts:
+      - equal:
+          path: spec.bootstrap.recovery.source
+          value: origin
+      - notExists:
+          path: spec.bootstrap.initdb
+
+  # "" must mean "use whatever the cluster defaults to", not "no dynamic
+  # provisioning", which is what an empty storageClassName actually means.
+  - it: omits storageClass rather than emptying it
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+        storage:
+          size: 20Gi
+          storageClass: ""
+    asserts:
+      - notExists:
+          path: spec.storage.storageClass
+
+  - it: renders the queue when bundled
+    template: templates/queue-elasticmq.yaml
+    set:
+      queue:
+        bundled: true
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  # The Service name is part of the queue URL, which is an HMAC signing input.
+  # A rename silently rejects every message rather than failing to connect.
+  - it: keeps the queue service name stable
+    template: templates/queue-elasticmq.yaml
+    documentIndex: 1
+    set:
+      queue:
+        bundled: true
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: metadata.name
+          value: elasticmq
+
+  - it: points node-address at its own service so returned URLs match
+    template: templates/queue-elasticmq.yaml
+    documentIndex: 0
+    set:
+      queue:
+        bundled: true
+    asserts:
+      - matchRegex:
+          path: data["elasticmq.conf"]
+          pattern: 'host = "elasticmq\.NAMESPACE\.svc\.cluster\.local"'
+
+  - it: enables file-backed storage so a restart does not lose messages
+    template: templates/queue-elasticmq.yaml
+    documentIndex: 0
+    set:
+      queue:
+        bundled: true
+        persistence:
+          enabled: true
+          h2Uri: jdbc:h2:/data/elasticmq
+    asserts:
+      - matchRegex:
+          path: data["elasticmq.conf"]
+          pattern: "messages-storage"
+
+  - it: omits storage configuration when persistence is off
+    template: templates/queue-elasticmq.yaml
+    documentIndex: 0
+    set:
+      queue:
+        bundled: true
+        persistence:
+          enabled: false
+    asserts:
+      - notMatchRegex:
+          path: data["elasticmq.conf"]
+          pattern: "messages-storage"
+
+  # ElasticMQ has no clustering. A second replica is a second independent queue
+  # that silently splits messages, so this must never be parameterised.
+  - it: never runs more than one queue replica
+    template: templates/queue-elasticmq.yaml
+    documentIndex: 2
+    set:
+      queue:
+        bundled: true
+    asserts:
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  # Restoring from an object store names an externalCluster. Without this passed
+  # through, postgresql.recovery can only reference a Backup object, which is
+  # namespaced - so a restore into a fresh namespace is not expressible at all.
+  - it: passes external clusters through for an object-store restore
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+        recovery:
+          source: origin
+        externalClusters:
+          - name: origin
+            barmanObjectStore:
+              destinationPath: s3://backups/
+    asserts:
+      - equal:
+          path: spec.externalClusters[0].name
+          value: origin
+      - equal:
+          path: spec.externalClusters[0].barmanObjectStore.destinationPath
+          value: s3://backups/
+
+  # A test harness sets session_replication_role to suppress triggers while it
+  # deletes rows. That normally needs a superuser, which CloudNativePG does not
+  # give the application role. Granting the one parameter is enough, and it is
+  # not an escalation: the owner already owns every table and could disable the
+  # triggers directly.
+  - it: grants SET on named parameters to the owner
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+        owner: keeperhub
+        grantSetOnParameters:
+          - session_replication_role
+    asserts:
+      - contains:
+          path: spec.bootstrap.initdb.postInitApplicationSQL
+          content: GRANT SET ON PARAMETER session_replication_role TO keeperhub
+
+  - it: grants nothing when no parameters are named
+    template: templates/postgres-cnpg.yaml
+    set:
+      postgresql:
+        bundled: true
+    asserts:
+      - notMatchRegex:
+          path: spec.bootstrap.initdb.postInitApplicationSQL[0]
+          pattern: ON PARAMETER
+      - lengthEqual:
+          path: spec.bootstrap.initdb.postInitApplicationSQL
+          count: 3
