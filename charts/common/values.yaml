@@ -347,6 +347,14 @@ affinity: {}
 
 externalSecrets: {}
 #  clusterSecretStoreName: ""
+#  # How often external-secrets re-reads every parameterStore value from
+#  # AWS Parameter Store. Each ExternalSecret polls independently, and each
+#  # poll costs an IRSA AssumeRoleWithWebIdentity, an ssm:GetParameter and a
+#  # kms:Decrypt, so a short interval is expensive across many secrets.
+#  # Defaults to 1h. Set it lower only where a rotated value has to land
+#  # fast; for an immediate pull, annotate the ExternalSecret with
+#  # force-sync instead of shortening this for everyone.
+#  refreshInterval: 1h
 
 env:
 # env:
