@@ -156,3 +156,55 @@ tests:
           content:
             name: "TARGET"
             value: "keeperhub"
+
+  - it: renders a type fieldRef env value as valueFrom.fieldRef
+    set:
+      deployment:
+        enabled: true
+      env:
+        POD_NAME:
+          type: fieldRef
+          value:
+            fieldPath: metadata.name
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: "POD_NAME"
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+
+  - it: renders fieldRef and resourceFieldRef env values on a sidecar
+    set:
+      deployment:
+        enabled: true
+      sidecars:
+        - name: side
+          image:
+            repository: busybox
+            tag: "1"
+          env:
+            POD_NAME:
+              type: fieldRef
+              value:
+                fieldPath: metadata.name
+            CPU_LIMIT:
+              type: resourceFieldRef
+              value:
+                resource: limits.cpu
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[1].env
+          content:
+            name: "POD_NAME"
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+      - contains:
+          path: spec.template.spec.containers[1].env
+          content:
+            name: "CPU_LIMIT"
+            valueFrom:
+              resourceFieldRef:
+                resource: limits.cpu

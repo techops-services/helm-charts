@@ -381,6 +381,18 @@ env:
 # Use it only where a value must be computed. type: kv stays a literal and is
 # still the right choice for everything else.
 #
+# type: fieldRef and type: resourceFieldRef expose pod and container fields
+# (the Downward API). value is passed through as the fieldRef/resourceFieldRef
+# body, so this works for env, sidecars, initContainers and cronjob env alike:
+#   POD_NAME:
+#     type: fieldRef
+#     value:
+#       fieldPath: metadata.name
+#   CPU_LIMIT:
+#     type: resourceFieldRef
+#     value:
+#       resource: limits.cpu
+#
 # image.repository, image.tag and an initContainer image string are rendered the
 # same way, but only when the string contains "{{". A string without it is passed
 # through unchanged, so no existing values file changes behaviour.

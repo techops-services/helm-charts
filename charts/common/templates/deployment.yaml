@@ -70,6 +70,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
                   key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
+            {{- else if eq $v.type "fieldRef" }}
+              valueFrom:
+                fieldRef:
+                  {{- toYaml $v.value | nindent 18 }}
+            {{- else if eq $v.type "resourceFieldRef" }}
+              valueFrom:
+                resourceFieldRef:
+                  {{- toYaml $v.value | nindent 18 }}
             {{- end }}
             {{- end }}
           {{- end }}
@@ -185,6 +193,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
                   key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
+            {{- else if eq $v.type "fieldRef" }}
+              valueFrom:
+                fieldRef:
+                  {{- toYaml $v.value | nindent 18 }}
+            {{- else if eq $v.type "resourceFieldRef" }}
+              valueFrom:
+                resourceFieldRef:
+                  {{- toYaml $v.value | nindent 18 }}
             {{- end }}
             {{- end }}
           livenessProbe:
@@ -240,6 +256,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "common.render" (dict "value" $v.name "ctx" $) | quote }}
                   key: {{ include "common.render" (dict "value" $v.key "ctx" $) | quote }}
+              {{- else if eq $v.type "fieldRef" }}
+              valueFrom:
+                fieldRef:
+                  {{- toYaml $v.value | nindent 18 }}
+              {{- else if eq $v.type "resourceFieldRef" }}
+              valueFrom:
+                resourceFieldRef:
+                  {{- toYaml $v.value | nindent 18 }}
               {{- end }}
             {{- end }}
           {{- end }}
