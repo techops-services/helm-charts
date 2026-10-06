@@ -33,6 +33,14 @@ deployment:
           type: "configmapRef"
           name: "configmap-name"
           key: "config-key"
+        POD_NAME:
+          type: fieldRef
+          value:
+            fieldPath: metadata.name
+        CPU_LIMIT:
+          type: resourceFieldRef
+          value:
+            resource: limits.cpu
   volumes:
     - name: data
       mountPath: /data
@@ -95,6 +103,10 @@ cronjob:
           type: parameterStore
           name: some-parameter-secret
           parameter_name: /eks/cluster-name/component-name/secret-name
+        POD_NAME:
+          type: fieldRef
+          value:
+            fieldPath: metadata.name
       envFrom:
         - secretRef:
             name: secret_data
@@ -148,6 +160,14 @@ sidecars:
       SOME_ENV_VAR_2:
         type: kv
         value: some-value-2
+      POD_NAME:
+        type: fieldRef
+        value:
+          fieldPath: metadata.name
+      CPU_LIMIT:
+        type: resourceFieldRef
+        value:
+          resource: limits.cpu
     args:
       - some-argument
     resources:
@@ -231,13 +251,19 @@ tolerations: []
 
 affinity: {}
 
-# env:
-#   DB_NAME:
-#     type: kv
-#     value: example-db
-#   DB_USER_NAME:
-#     type: kv
-#     value: example
+env:
+  DB_NAME:
+    type: kv
+    value: example-db
+  POD_NAME:
+    type: fieldRef
+    value:
+      fieldPath: metadata.name
+  CPU_LIMIT:
+    type: resourceFieldRef
+    value:
+      resource: limits.cpu
+# parameterStore needs the ExternalSecret CRD, which is disabled below:
 #   DB_USER_PASSWORD:
 #     type: parameterStore
 #     name: example-db

@@ -36,6 +36,31 @@ Use it only where a value must be computed. `type: kv` stays the right choice fo
 a plain literal, and its behaviour is unchanged - a `kv` value containing `{{` is
 still written out verbatim.
 
+## Downward API: `type: fieldRef` and `type: resourceFieldRef`
+
+`value` is passed through as the body of the Kubernetes `fieldRef` /
+`resourceFieldRef`. Every env map accepts them.
+
+```yaml
+sidecars:
+  - name: SomeName
+    env:
+      POD_NAME:
+        type: fieldRef
+        value:
+          fieldPath: metadata.name
+```
+
+renders as
+
+```yaml
+env:
+  - name: POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+```
+
 ### Images render the same way
 
 `image.repository`, `image.tag` and an initContainer's `image` string accept the
