@@ -3,6 +3,17 @@ entries:
   common:
   - apiVersion: v2
     appVersion: 0.0.37
+    created: "2026-10-06T15:27:29.098182321Z"
+    description: A Helm chart for Kubernetes
+    digest: e40ee71e1a5260a3279fa4b82820334b52e7e5371a703103a892d7773f07dac4
+    icon: https://cncf-branding.netlify.app/img/projects/helm/horizontal/color/helm-horizontal-color.png
+    name: common
+    type: application
+    urls:
+    - https://github.com/techops-services/helm-charts/releases/download/common-0.8.0/common-0.8.0.tgz
+    version: 0.8.0
+  - apiVersion: v2
+    appVersion: 0.0.37
     created: "2026-09-28T09:55:34.439157209Z"
     description: A Helm chart for Kubernetes
     digest: 4f3d47354aafecf60703d594861a7db56c203032320bb161cf4d796a608c88b0
@@ -1523,4 +1534,4 @@ entries:
     urls:
     - https://github.com/techops-services/helm-charts/releases/download/valkey-1.0.0/valkey-1.0.0.tgz
     version: 1.0.0
-generated: "2026-09-28T09:55:34.768923412Z"
+generated: "2026-10-06T15:27:29.098304874Z"
